@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/startFragment">
+
+    <fragment
+        android:id="@+id/logoFragment"
+        android:name="com.xxivek.tsdxxivek.LogoFragment"
+        android:label="fragment_logo"
+        tools:layout="@layout/fragment_logo" >
+        <action
+            android:id="@+id/action_logoFragment_to_menuFragment"
+            app:destination="@id/menuFragment" />
+        <action
+            android:id="@+id/action_logoFragment_to_scanerFragment"
+            app:destination="@id/scanerFragment" />
+        <action
+            android:id="@+id/action_logoFragment_to_scanerFragment_d"
+            app:destination="@id/scanerFragment_d" />
+        <action
+            android:id="@+id/action_logoFragment_to_about"
+            app:destination="@id/about" />
+    </fragment>
+    <fragment
+        android:id="@+id/menuFragment"
+        android:name="com.xxivek.tsdxxivek.MenuFragment"
+        android:label="fragment_menu"
+        tools:layout="@layout/fragment_menu">
+        <action
+            android:id="@+id/action_menuFragment_to_settingsFragment"
+            app:destination="@id/settingsFragment" />
+        <action
+            android:id="@+id/action_menuFragment_to_scanerFragment_d"
+            app:destination="@id/scanerFragment_d" />
+        <action
+            android:id="@+id/action_menuFragment_to_scanerFragment"
+            app:destination="@id/scanerFragment" />
+        <action
+            android:id="@+id/action_menuFragment_to_itemListFragment1"
+            app:destination="@id/itemListFragment1" />
+        <action
+            android:id="@+id/action_menuFragment_to_itemListFragment2"
+            app:destination="@id/itemListFragment2" />
+        <action
+            android:id="@+id/action_menuFragment_to_itemListFragment"
+            app:destination="@id/itemListFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/scanerFragment"
+        android:name="com.xxivek.tsdxxivek.scaner.ScanerFragment"
+        android:label="fragment_scaner"
+        tools:layout="@layout/fragment_scaner" >
+        <action
+            android:id="@+id/action_scanerFragment_to_pairingFragment"
+            app:destination="@id/pairingFragment" />
+        <action
+            android:id="@+id/action_scanerFragment_to_addItemFragment"
+            app:destination="@id/addItemFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/scanerFragment_d"
+        android:name="com.xxivek.tsdxxivek.scaner.ScanerFragment_d"
+        android:label="fragment_scaner_d"
+        tools:layout="@layout/fragment_scaner_d">
+        <action
+            android:id="@+id/action_scanerFragmentd_to_pairingFragment"
+            app:destination="@id/pairingFragment" />
+        <action
+            android:id="@+id/action_scanerFragment_d_to_addItemFragment"
+            app:destination="@id/addItemFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/settingsFragment"
+        android:name="com.xxivek.tsdxxivek.SettingsFragment"
+        android:label="fragment_settings"
+        tools:layout="@layout/fragment_settings" >
+        <action
+            android:id="@+id/action_settingsFragment_to_connectFragment"
+            app:destination="@id/connectFragment" />
+        <action
+            android:id="@+id/action_settingsFragment_to_setgeneralFragment"
+            app:destination="@id/setgeneralFragment" />
+        <action
+            android:id="@+id/action_settingsFragment_to_itemListFragment"
+            app:destination="@id/itemListFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/connectFragment"
+        android:name="com.xxivek.tsdxxivek.serverHTTP.ConnectFragment"
+        android:label="fragment_connect"
+        tools:layout="@layout/fragment_connect" />
+    <fragment
+        android:id="@+id/itemListFragment"
+        android:name="com.xxivek.tsdxxivek.dataDB.ItemListFragment"
+        android:label="fragment_item_list"
+        tools:layout="@layout/fragment_item_list" >
+        <action
+            android:id="@+id/action_itemListFragment_to_addItemFragment"
+            app:destination="@id/addItemFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/addItemFragment"
+        android:name="com.xxivek.tsdxxivek.dataDB.AddItemFragment"
+        android:label="fragment_add_item"
+        tools:layout="@layout/fragment_add_item" >
+        <argument
+            android:name="ARG_SHTIP"
+            app:argType="string"
+            android:defaultValue="Установите тип штрихкода" />
+        <argument
+            android:name="ARG_SH"
+            app:argType="string"
+            android:defaultValue="Установите штрихкод" />
+        <argument
+            android:name="ARG_NAME"
+            app:argType="string"
+            android:defaultValue="Установите наименование товара" />
+        <argument
+            android:name="ARG_PRICE"
+            app:argType="string"
+            android:defaultValue="Установите цену товара" />
+        <argument
+            android:name="ARG_QUANTITYINSTOCK"
+            app:argType="string"
+            android:defaultValue="Установите кол. на складе" />
+        <argument
+            android:name="ARG_QUANTITY"
+            app:argType="string"
+            android:defaultValue="Установите количество" />
+        <argument
+            android:name="ARG_VIEW"
+            app:argType="string"
+            android:defaultValue="Форма вызова" />
+    </fragment>
+    <fragment
+        android:id="@+id/pairingFragment"
+        android:name="com.xxivek.tsdxxivek.PairingFragment"
+        android:label="fragment_pairing"
+        tools:layout="@layout/fragment_pairing" >
+        <action
+            android:id="@+id/action_pairingFragment_to_menuFragment"
+            app:destination="@id/menuFragment" />
+        <action
+            android:id="@+id/action_pairingFragment_to_logoFragment"
+            app:destination="@id/logoFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/setgeneralFragment"
+        android:name="com.xxivek.tsdxxivek.SetgeneralFragment"
+        android:label="fragment_setgeneral"
+        tools:layout="@layout/fragment_setgeneral" >
+        <action
+            android:id="@+id/action_setgeneralFragment_to_logTextFragment"
+            app:destination="@id/logTextFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/logTextFragment"
+        android:name="com.xxivek.tsdxxivek.LogTextFragment"
+        android:label="fragment_log_text"
+        tools:layout="@layout/fragment_log_text" >
+    </fragment>
+    <fragment
+        android:id="@+id/startFragment"
+        android:name="com.xxivek.tsdxxivek.StartFragment"
+        android:label="fragment_start"
+        tools:layout="@layout/fragment_start" >
+        <action
+            android:id="@+id/action_startFragment_to_logoFragment"
+            app:destination="@id/logoFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/itemListFragment1"
+        android:name="com.xxivek.tsdxxivek.dataDB.ItemListFragment1"
+        android:label="fragment_item_list1"
+        tools:layout="@layout/fragment_item_list1" >
+        <action
+            android:id="@+id/action_itemListFragment1_to_addItemFragment"
+            app:destination="@id/addItemFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/itemListFragment2"
+        android:name="com.xxivek.tsdxxivek.dataDB.ItemListFragment2"
+        android:label="fragment_item_list2"
+        tools:layout="@layout/fragment_item_list2" >
+        <action
+            android:id="@+id/action_itemListFragment2_to_addItemFragment"
+            app:destination="@id/addItemFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/about"
+        android:name="com.xxivek.tsdxxivek.about"
+        android:label="fragment_about"
+        tools:layout="@layout/fragment_about" />
+</navigation>

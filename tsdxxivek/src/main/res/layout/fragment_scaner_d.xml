@@ -1,0 +1,616 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".scaner.ScanerFragment">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/fullViev"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/app_fon"
+        android:visibility="visible">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/layout_camera"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_gravity="top"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginBottom="16dp"
+            android:visibility="visible"
+            app:layout_constraintBottom_toTopOf="@+id/layout_scan_result"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="1.0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:ignore="ExtraText">
+            app:layout_constraintDimensionRatio=AspectRatio.RATIO_4_3
+
+            <Button
+                android:id="@+id/b_flash"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|left"
+                android:layout_marginStart="8dp"
+                android:layout_marginTop="8dp"
+                android:onClick="onFlash"
+                android:text="Свет"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <androidx.camera.view.PreviewView
+                android:id="@+id/preview_view"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_marginStart="32dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginEnd="32dp"
+                android:layout_marginBottom="16dp"
+                android:clickable="false"
+                app:layout_constrainedHeight="false"
+                app:layout_constrainedWidth="false"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
+
+            </androidx.camera.view.PreviewView>
+
+            <Button
+                android:id="@+id/helpB"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:layout_marginEnd="8dp"
+                android:text="Help"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <LinearLayout
+            android:id="@+id/layout_scan_result"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_gravity="center"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginBottom="8dp"
+            android:orientation="vertical"
+            android:visibility="visible"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/layout_camera">
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/layoyt_blank"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="gone">
+
+                <Button
+                    android:id="@+id/b_manualinputSh"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginEnd="16dp"
+                    android:text="Ручной ввод штрихкода"
+                    android:visibility="visible"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <TextView
+                    android:id="@+id/text_blank"
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginEnd="16dp"
+                    android:layout_marginBottom="16dp"
+                    android:gravity="center"
+                    android:text="Дождитесь загрузки приложения"
+                    android:textColor="@color/teal_700"
+                    android:textSize="34sp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintHorizontal_bias="0.0"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintVertical_bias="0.0" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/layoyt_input"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="visible">
+
+                <LinearLayout
+                    android:id="@+id/layout_input_res"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:orientation="horizontal"
+                    android:visibility="visible"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent">
+
+                    <TextView
+                        android:id="@+id/text_input_res"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center_horizontal|center_vertical"
+                        android:text="0"
+                        android:textColor="@color/teal_200"
+                        android:textSize="34sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/layout_input_keyboard"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_marginTop="16dp"
+                    android:orientation="vertical"
+                    android:visibility="visible"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/layout_input_res">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_horizontal"
+                        android:orientation="horizontal">
+
+                        <Button
+                            android:id="@+id/b_input_7"
+                            style="@style/input_button"
+                            android:layout_width="50dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="0"
+                            android:text="7" />
+
+                        <Button
+                            android:id="@+id/b_input_8"
+                            style="@style/input_button"
+                            android:layout_width="50dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="0"
+                            android:text="8" />
+
+                        <Button
+                            android:id="@+id/b_input_9"
+                            style="@style/input_button"
+                            android:layout_width="50dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="0"
+                            android:text="9" />
+
+                        <Button
+                            android:id="@+id/b_input_clear"
+                            style="@style/input_button"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="3dp"
+                            android:layout_weight="0"
+                            android:text="Clear"
+                            android:textSize="14sp" />
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_horizontal"
+                        android:orientation="horizontal">
+
+                        <Button
+                            android:id="@+id/b_input_4"
+                            style="@style/input_button"
+                            android:layout_width="50dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="0"
+                            android:text="4" />
+
+                        <Button
+                            android:id="@+id/b_input_5"
+                            style="@style/input_button"
+                            android:layout_width="50dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="0"
+                            android:text="5" />
+
+                        <Button
+                            android:id="@+id/b_input_6"
+                            style="@style/input_button"
+                            android:layout_width="50dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="0"
+                            android:text="6" />
+
+                        <Button
+                            android:id="@+id/b_input_minus"
+                            style="@style/input_button"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="0"
+                            android:text="-" />
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_horizontal"
+                        android:orientation="horizontal">
+
+                        <Button
+                            android:id="@+id/b_input_1"
+                            style="@style/input_button"
+                            android:text="1" />
+
+                        <Button
+                            android:id="@+id/b_input_2"
+                            style="@style/input_button"
+                            android:layout_width="50dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="0"
+                            android:text="2" />
+
+                        <Button
+                            android:id="@+id/b_input_3"
+                            style="@style/input_button"
+                            android:layout_width="50dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="0"
+                            android:text="3" />
+
+                        <Button
+                            android:id="@+id/b_input_00"
+                            style="@style/input_button"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="0"
+                            android:text="00" />
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_horizontal"
+                        android:orientation="horizontal">
+
+                        <Button
+                            android:id="@+id/b_input_0"
+                            style="@style/input_button"
+                            android:text="0" />
+
+                        <Button
+                            android:id="@+id/b_input_point"
+                            style="@style/input_button"
+                            android:layout_width="50dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="0"
+                            android:text="." />
+
+                        <Button
+                            android:id="@+id/b_input_enter"
+                            style="@style/input_button"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="3dp"
+                            android:layout_weight="0"
+                            android:text="Enter"
+                            android:textSize="14dp" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/layout_scan_err"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/text_err"
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginEnd="16dp"
+                    android:layout_marginBottom="32dp"
+                    android:gravity="center_horizontal|center_vertical"
+                    android:text="Ошибка"
+                    android:textColor="@color/error"
+                    android:textSize="24sp"
+                    android:textStyle="bold"
+                    app:layout_constraintBottom_toTopOf="@+id/b_err_scan"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <Button
+                    android:id="@+id/b_err_scan"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="32dp"
+                    android:layout_marginEnd="32dp"
+                    android:layout_marginBottom="32dp"
+                    android:text="Сканировать"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <LinearLayout
+                android:id="@+id/layout_scan_result_rab"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:visibility="visible">
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+
+                    <TextView
+                        android:id="@+id/text_rab_sh"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginStart="8dp"
+                        android:layout_marginEnd="8dp"
+                        android:text="1234567890123"
+                        android:textColor="@color/purple_500"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <TextView
+                        android:id="@+id/text_rab_naim"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginEnd="8dp"
+                        android:text="Какое то страшно большое наименование"
+                        android:textColor="@color/teal_700"
+                        android:textSize="20sp"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@+id/text_rab_sh" />
+
+                    <TextView
+                        android:id="@+id/text_rab_count"
+                        android:layout_width="197dp"
+                        android:layout_height="52dp"
+                        android:layout_gravity="center_horizontal"
+                        android:text="100000"
+                        android:textAlignment="center"
+                        android:textColor="@color/error"
+                        android:textSize="48sp"
+                        android:textStyle="bold"
+                        app:layout_constraintBottom_toTopOf="@+id/fab_rab_confirm"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent" />
+
+                    <Button
+                        android:id="@+id/b_skip_increment"
+                        android:layout_width="85dp"
+                        android:layout_height="60dp"
+                        android:layout_weight="0"
+                        android:backgroundTint="@color/attention"
+                        android:text="СБРОС"
+                        app:layout_constraintBottom_toBottomOf="@+id/numberPicker_1"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toEndOf="@+id/numberPicker_1"
+                        app:layout_constraintTop_toTopOf="@+id/numberPicker_1" />
+
+                    <NumberPicker
+                        android:id="@+id/numberPicker_3"
+                        android:layout_width="40dp"
+                        android:layout_height="100dp"
+                        android:width="10dp"
+                        android:background="@color/app_fon"
+                        android:clickable="false"
+                        android:orientation="vertical"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toEndOf="@+id/numberPicker_4" />
+
+                    <NumberPicker
+                        android:id="@+id/numberPicker_2"
+                        android:layout_width="40dp"
+                        android:layout_height="100dp"
+                        android:width="10dp"
+                        android:background="@color/app_fon"
+                        android:clickable="false"
+                        android:orientation="vertical"
+                        app:layout_constraintBottom_toBottomOf="@+id/numberPicker_3"
+                        app:layout_constraintStart_toEndOf="@+id/numberPicker_3"
+                        app:layout_constraintTop_toTopOf="@+id/numberPicker_3" />
+
+                    <NumberPicker
+                        android:id="@+id/numberPicker_1"
+                        android:layout_width="40dp"
+                        android:layout_height="100dp"
+                        android:width="10dp"
+                        android:background="@color/app_fon"
+                        android:clickable="false"
+                        android:orientation="vertical"
+                        app:layout_constraintBottom_toBottomOf="@+id/numberPicker_2"
+                        app:layout_constraintStart_toEndOf="@+id/numberPicker_2"
+                        app:layout_constraintTop_toTopOf="@+id/numberPicker_2"
+                        app:layout_constraintVertical_bias="0.0" />
+
+                    <NumberPicker
+                        android:id="@+id/numberPicker_4"
+                        android:layout_width="40dp"
+                        android:layout_height="100dp"
+                        android:width="10dp"
+                        android:background="@color/app_fon"
+                        android:clickable="false"
+                        android:orientation="vertical"
+                        app:layout_constraintBottom_toBottomOf="@+id/numberPicker_3"
+                        app:layout_constraintStart_toEndOf="@+id/numberPicker_5"
+                        app:layout_constraintTop_toTopOf="@+id/numberPicker_3" />
+
+                    <NumberPicker
+                        android:id="@+id/numberPicker_5"
+                        android:layout_width="40dp"
+                        android:layout_height="100dp"
+                        android:width="10dp"
+                        android:background="@color/app_fon"
+                        android:clickable="false"
+                        android:orientation="vertical"
+                        app:layout_constraintBottom_toBottomOf="@+id/numberPicker_4"
+                        app:layout_constraintStart_toEndOf="@+id/sight"
+                        app:layout_constraintTop_toTopOf="@+id/numberPicker_4" />
+
+                    <Button
+                        android:id="@+id/sight"
+                        android:layout_width="60dp"
+                        android:layout_height="60dp"
+                        android:clickable="true"
+                        android:text="+"
+                        android:textSize="30sp"
+                        android:textStyle="bold"
+                        app:layout_constraintBottom_toBottomOf="@+id/numberPicker_5"
+                        app:layout_constraintEnd_toStartOf="@+id/numberPicker_5"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="@+id/numberPicker_5" />
+
+                    <Button
+                        android:id="@+id/fab_rab_confirm"
+                        android:layout_width="200dp"
+                        android:layout_height="70dp"
+                        android:text="ПРИБАВИТЬ"
+                        app:layout_constraintBottom_toTopOf="@+id/numberPicker_3"
+                        app:layout_constraintEnd_toStartOf="@+id/fab_rab_not_confirm"
+                        app:layout_constraintStart_toEndOf="@+id/calc" />
+
+                    <Button
+                        android:id="@+id/fab_rab_not_confirm"
+                        android:layout_width="70dp"
+                        android:layout_height="70dp"
+                        android:backgroundTint="@color/error"
+                        android:contentDescription="Отказаться"
+                        android:insetLeft="0dp"
+                        android:insetRight="6dp"
+                        app:icon="@android:drawable/ic_delete"
+                        app:iconPadding="8dp"
+                        app:layout_constraintBottom_toBottomOf="@+id/fab_rab_confirm"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toEndOf="@+id/fab_rab_confirm"
+                        app:layout_constraintTop_toBottomOf="@+id/text_rab_count" />
+
+                    <Button
+                        android:id="@+id/calc"
+                        android:layout_width="70dp"
+                        android:layout_height="70dp"
+                        android:contentDescription="Калькулятор"
+                        app:icon="@android:drawable/ic_dialog_dialer"
+                        app:iconSize="50dp"
+                        app:layout_constraintBottom_toBottomOf="@+id/fab_rab_confirm"
+                        app:layout_constraintEnd_toStartOf="@+id/fab_rab_confirm"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@+id/text_rab_count" />
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/layout_scan_result_test"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/tvScannedType"
+                    android:layout_width="40dp"
+                    android:layout_height="27dp"
+                    android:layout_gravity="center_horizontal|top"
+                    android:text="tvScannedType"
+                    android:textAlignment="center"
+                    android:textColor="@color/error"
+                    android:textSize="20sp" />
+
+                <TextView
+                    android:id="@+id/tvScannedData"
+                    android:layout_width="match_parent"
+                    android:layout_height="231dp"
+                    android:layout_gravity="start|center_horizontal"
+                    android:layout_marginStart="10dp"
+                    android:layout_marginEnd="10dp"
+                    android:text="tvScannedData"
+                    android:textAlignment="textStart"
+                    android:textColor="@color/teal_200"
+                    android:textSize="20sp" />
+
+                <LinearLayout
+                    android:id="@+id/layout_test_button"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:layout_marginBottom="8dp"
+                    android:gravity="center"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/buttonScan"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:onClick="onScan"
+                        android:text="Сканировать" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/return_b"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:layout_marginBottom="8dp"
+            android:text="Назад"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <ImageView
+            android:id="@+id/helpView"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:scaleType="fitXY"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:src="@tools:sample/avatars" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</FrameLayout>

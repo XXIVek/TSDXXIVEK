@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DesignSurface">
+    <option name="filePathToZoomLevelMap">
+      <map>
+        <entry key="..\:/Android/TSDXXIVEK/app/src/main/res/layout/activity_main.xml" value="0.22282608695652173" />
+        <entry key="..\:/Android/TSDXXIVEK/tsdxxivek/src/main/res/layout/activity_main.xml" value="0.22282608695652173" />
+        <entry key="..\:/Android/TSDXXIVEK/tsdxxivek/src/main/res/layout/dialog_oper.xml" value="0.29393115942028986" />
+        <entry key="..\:/Android/TSDXXIVEK/tsdxxivek/src/main/res/layout/fragment_about.xml" value="0.29393115942028986" />
+        <entry key="..\:/Android/TSDXXIVEK/tsdxxivek/src/main/res/layout/fragment_add_item.xml" value="0.31521739130434784" />
+        <entry key="..\:/Android/TSDXXIVEK/tsdxxivek/src/main/res/layout/fragment_add_item_d.xml" value="0.31521739130434784" />
+        <entry key="..\:/Android/TSDXXIVEK/tsdxxivek/src/main/res/layout/fragment_bd.xml" value="0.31521739130434784" />
+        <entry key="..\:/Android/TSDXXIVEK/tsdxxivek/src/main/res/layout/fragment_bd_d.xml" value="0.31521739130434784" />
+        <entry key="..\:/Android/TSDXXIVEK/tsdxxivek/src/main/res/layout/fragment_connect.xml" value="0.31521739130434784" />
+        <entry key="..\:/Android/TSDXXIVEK/tsdxxivek/src/main/res/layout/fragment_connect_d.xml" value="0.31521739130434784" />
+        <entry key="..\:/Android/TSDXXIVEK/tsdxxivek/src/main/res/layout/fragment_db_servis.xml" value="0.25" />
+        <entry key="..\:/Android/TSDXXIVEK/tsdxxivek/src/main/res/layout/fragment_db_servis_d.xml" value="0.31521739130434784" />
+        <entry key="..\:/Android/TSDXXIVEK/tsdxxivek/src/main/res/layout/fragment_item_detail.xml" value="0.18541666666666667" />
+        <entry key="..\:/Android/TSDXXIVEK/tsdxxivek/src/main/res/layout/fragment_item_detail_d.xml" value="0.31521739130434784" />
+        <entry key="..\:/Android/TSDXXIVEK/tsdxxivek/src/main/res/layout/fragment_item_list.xml" value="0.33" />
+        <entry key="..\:/Android/TSDXXIVEK/tsdxxivek/src/main/res/layout/fragment_item_list1.xml" value="0.33" />
+        <entry key="..\:/Android/TSDXXIVEK/tsdxxivek/src/main/res/layout/fragment_item_list2.xml" value="0.33" />
+        <entry key="..\:/Android/TSDXXIVEK/tsdxxivek/src/main/res/layout/fragment_item_list_d.xml" value="0.31521739130434784" />
+        <entry key="..\:/Android/TSDXXIVEK/tsdxxivek/src/main/res/layout/fragment_log_text.xml" value="0.31521739130434784" />
+        <entry key="..\:/Android/TSDXXIVEK/tsdxxivek/src/main/res/layout/fragment_log_text_d.xml" value="0.31521739130434784" />
+        <entry key="..\:/Android/TSDXXIVEK/tsdxxivek/src/main/res/layout/fragment_logo.xml" value="0.25" />
+        <entry key="..\:/Android/TSDXXIVEK/tsdxxivek/src/main/res/layout/fragment_logo_d.xml" value="0.31521739130434784" />
+        <entry key="..\:/Android/TSDXXIVEK/tsdxxivek/src/main/res/layout/fragment_menu.xml" value="0.25" />
+        <entry key="..\:/Android/TSDXXIVEK/tsdxxivek/src/main/res/layout/fragment_menu_d.xml" value="0.31521739130434784" />
+        <entry key="..\:/Android/TSDXXIVEK/tsdxxivek/src/main/res/layout/fragment_pairing.xml" value="0.259963768115942" />
+        <entry key="..\:/Android/TSDXXIVEK/tsdxxivek/src/main/res/layout/fragment_pairing_d.xml" value="0.31521739130434784" />
+        <entry key="..\:/Android/TSDXXIVEK/tsdxxivek/src/main/res/layout/fragment_scaner.xml" value="0.25" />
+        <entry key="..\:/Android/TSDXXIVEK/tsdxxivek/src/main/res/layout/fragment_scaner_d.xml" value="0.25" />
+        <entry key="..\:/Android/TSDXXIVEK/tsdxxivek/src/main/res/layout/fragment_setgeneral.xml" value="0.31521739130434784" />
+        <entry key="..\:/Android/TSDXXIVEK/tsdxxivek/src/main/res/layout/fragment_setgeneral_d.xml" value="0.31521739130434784" />
+        <entry key="..\:/Android/TSDXXIVEK/tsdxxivek/src/main/res/layout/fragment_settings.xml" value="0.31521739130434784" />
+        <entry key="..\:/Android/TSDXXIVEK/tsdxxivek/src/main/res/layout/fragment_settings_d.xml" value="0.31521739130434784" />
+        <entry key="..\:/Android/TSDXXIVEK/tsdxxivek/src/main/res/layout/fragment_start.xml" value="0.31521739130434784" />
+        <entry key="..\:/Android/TSDXXIVEK/tsdxxivek/src/main/res/layout/itemline.xml" value="0.259963768115942" />
+        <entry key="..\:/Android/TSDXXIVEK/tsdxxivek/src/main/res/layout/itemline_d.xml" value="0.31521739130434784" />
+      </map>
+    </option>
+  </component>
+  <component name="ExternalStorageConfigurationManager" enabled="true" />
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_11" default="true" project-jdk-name="Android Studio default JDK" project-jdk-type="JavaSDK">
+    <output url="file://$PROJECT_DIR$/build/classes" />
+  </component>
+  <component name="ProjectType">
+    <option name="id" value="Android" />
+  </component>
+</project>

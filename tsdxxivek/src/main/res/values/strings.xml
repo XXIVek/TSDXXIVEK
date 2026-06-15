@@ -1,0 +1,30 @@
+<resources>
+    <string name="app_name">TSD XXI Vek</string>
+    <string name="about_text">Версия ТСД: 1.0.4 (4)\n
+    Тестировалось на платформе и конфигурациях 1С:\n
+    Платформа 1С:Предприятие 8.3 (8.3.20.1674)\n
+    - XXI.BackOffice 8 редакция 1.0.2. (1.0.2.26)\n
+    - XXI.Коммерческий магазин 8 редакция 1.0.3. (1.0.3.24)\n
+    - Бухгалтерия государственного учреждения, редакция 2.0 (2.0.91.54) и ниже\n
+    - Управление торговлей, редакция 10.3 (10.3.72.2)\n
+    - Управление торговлей, редакция 11 от (11.4.14.181) до (11.5.8.221)\n
+    - Розница, редакция 2.3 от (2.3.7.22) до (2.3.11.43)\n
+    - Управление нашей фирмой, редакция 1.6 от (1.6.24.92) до (1.6.27.295).\n\n
+    Работа на других платформах и релизах конфигураций не гарантируется.\n
+    </string>
+    <string name="logo_text">Это версия ТСД работает совместно с обработкой под 1с.\n
+    Для сопряжения устройств нажмите кнопку "Далее" и запустите сопряжение в обработке 1С.\n
+    После чего считайте QR код и дождитесь подтверждения операции.</string>
+    <string name="item">Штрихкод \nНаименование</string>
+    <string name="price">Цена</string>
+    <string name="quantity_in_stock">Кол-во\nна складе</string>
+    <string name="quantity">Кол-во\nСумма</string>
+    <string name="quantity_f">Кол-во\nКол. факт.</string>
+    <string name="add_new_item">Добавить запись</string>
+    <string name="delete_question">Вы уверены в удалении записи?</string>
+    <string name="no">Нет</string>
+    <string name="yes">Да</string>
+    <string name="edit_item">Редактировать запись</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+</resources>

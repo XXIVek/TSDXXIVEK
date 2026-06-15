@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".SettingsFragment">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal|center_vertical"
+        android:orientation="vertical">
+
+        <Button
+            android:id="@+id/b_setdb"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Настройки БД" />
+
+        <Button
+            android:id="@+id/b_setconnect"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Настройки подключения" />
+
+        <Button
+            android:id="@+id/b_setgeneral"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Общие настройки" />
+    </LinearLayout>
+</FrameLayout>

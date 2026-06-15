@@ -1,0 +1,64 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 2,
+    "identityHash": "b26d9d4c11ddbd3a9f80fbe3966c69ae",
+    "entities": [
+      {
+        "tableName": "item",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`shtrihkod` TEXT NOT NULL, `shtrihtip` INTEGER NOT NULL, `name` TEXT NOT NULL, `price` REAL NOT NULL, `quantityInStock` INTEGER NOT NULL, `quantity` INTEGER NOT NULL, PRIMARY KEY(`shtrihkod`))",
+        "fields": [
+          {
+            "fieldPath": "itemSh",
+            "columnName": "shtrihkod",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "itemShTip",
+            "columnName": "shtrihtip",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "itemName",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "itemPrice",
+            "columnName": "price",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "itemQuantityInStock",
+            "columnName": "quantityInStock",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "itemQuantity",
+            "columnName": "quantity",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "shtrihkod"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b26d9d4c11ddbd3a9f80fbe3966c69ae')"
+    ]
+  }
+}

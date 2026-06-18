@@ -64,6 +64,11 @@ class LogoFragment : Fragment() {
         }else{
             binding.radioButtonD.isChecked=true
         }
+        if (USE_WEBSITE==false){
+            binding.radioButtonLocal.isChecked=true
+        }else{
+            binding.radioButtonSite.isChecked=true
+        }
         binding.radioGroupTopic.setOnCheckedChangeListener { rG, checkedId ->
             var mMODE = 0
             var mEdit = false
@@ -93,6 +98,15 @@ class LogoFragment : Fragment() {
             }
             val editor = prefs.edit()
             editor.putInt(APP_PREF_DESIGN, DESIGN).apply()
+        }
+        binding.radioGroupUseWebsite.setOnCheckedChangeListener {rG, checkedId ->
+            if (checkedId==binding.radioButtonSite.id){
+                USE_WEBSITE=true
+            }else if (checkedId==binding.radioButtonLocal.id) {
+                USE_WEBSITE=false
+            }
+            val editor = prefs.edit()
+            editor.putBoolean(APP_PREF_USE_WEBSITE, USE_WEBSITE).apply()
         }
         binding.bLogoExit.setOnClickListener{MainActivity().appExit()}
         binding.buttonSite.setOnClickListener {

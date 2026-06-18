@@ -52,6 +52,10 @@ var TOPIC=0
 const val APP_PREF_DESIGN = "design"
 var DESIGN=0
 
+//APP_PREF_USE_WEBSITE - использовать внешний сайт для обмена
+const val APP_PREF_USE_WEBSITE = "use_website"
+var USE_WEBSITE=false
+
 var msg_log:String?=null
 
 // Сервер HTTP
@@ -110,6 +114,9 @@ class MainActivity : AppCompatActivity() {
         }
         if(prefs.contains(APP_PREF_DESIGN)){
             DESIGN = prefs.getInt(APP_PREF_DESIGN,0)
+        }
+        if(prefs.contains(APP_PREF_USE_WEBSITE)){
+            USE_WEBSITE = prefs.getBoolean(APP_PREF_USE_WEBSITE,false)
         }
         apptheme()
 

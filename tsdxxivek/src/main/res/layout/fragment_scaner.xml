@@ -82,6 +82,42 @@
                 android:layout_height="match_parent"
                 android:visibility="gone">
 
+                <LinearLayout
+                    android:id="@+id/layout_activation"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginEnd="16dp"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:text="Введите код активации"
+                        android:textSize="16sp" />
+
+                    <EditText
+                        android:id="@+id/et_activation_code"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="GUPHLA"
+                        android:inputType="textCapCharacters"
+                        android:maxLength="6"
+                        android:textSize="24sp" />
+
+                    <Button
+                        android:id="@+id/b_activate"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Активировать" />
+
+                </LinearLayout>
+
                 <Button
                     android:id="@+id/b_manualinputSh"
                     android:layout_width="0dp"
@@ -92,7 +128,7 @@
                     android:visibility="gone"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
+                    app:layout_constraintTop_toBottomOf="@+id/layout_activation" />
 
                 <TextView
                     android:id="@+id/text_blank"
@@ -110,7 +146,7 @@
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintHorizontal_bias="0.0"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/b_manualinputSh"
                     app:layout_constraintVertical_bias="0.0" />
             </androidx.constraintlayout.widget.ConstraintLayout>
 

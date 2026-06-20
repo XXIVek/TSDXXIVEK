@@ -34,6 +34,7 @@ import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import com.xxivek.tsdxxivek.*
 import com.xxivek.tsdxxivek.R
+import com.xxivek.tsdxxivek.api.ApiClient
 import com.xxivek.tsdxxivek.dataDB.AddItemFragment
 import com.xxivek.tsdxxivek.dataDB.InventoryViewModel
 import com.xxivek.tsdxxivek.dataDB.InventoryViewModelFactory
@@ -171,6 +172,14 @@ class ScanerFragment : Fragment() {
         }
         binding.bInputEnter.setOnClickListener {fInputEnter()}
         binding.bManualinputSh.setOnClickListener {fManualinputSh()}
+
+        // Активация по коду
+        binding.bActivate.setOnClickListener {
+            val code = binding.etActivationCode.text.toString().trim()
+            if (code.isNotBlank() && code.length >= 4) {
+                activateDevice(code)
+            }
+        }
 
 // Управление фокусом
         binding.previewView.setOnClickListener {
@@ -501,7 +510,13 @@ class ScanerFragment : Fragment() {
                                 val navControler = binding.root.findNavController()
                                 //cameraProvider?.shutdown()
                                 navControler.navigate(R.id.action_scanerFragment_to_pairingFragment)
-                            }else{
+                            } else if (mText.startsWith("PAIR:")) {
+                                val activationCode = mText.substringAfter("PAIR:")
+                                if (activationCode.isNotBlank() && activationCode.length >= 4) {
+                                    binding.etActivationCode.setText(activationCode)
+                                    activateDevice(activationCode)
+                                }
+                            } else {
                                 binding.tvScannedType.text = valueType.toString()
                                 binding.tvScannedData.text =rawValue
                             }
@@ -634,5 +649,71 @@ class ScanerFragment : Fragment() {
             return bundle
         }
 
+    }
+
+    /**
+     * Активация устройства через API
+     * Шаг 1: POST /api/v1/devices/activate — получаем device_uuid
+     * Шаг 2: PUT /api/v1/devices/status — отправляем статус сопряжения
+     */
+    private fun activateDevice(activationCode: String) {
+        CoroutineScope(IO).launch {
+            val apiClient = ApiClient()
+            val prefs = binding.root.context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+
+            // Шаг 1: Активация
+            val activateResponse = apiClient.activateDevice(activationCode)
+
+            if (!activateResponse.success || activateResponse.device_uuid.isNullOrBlank()) {
+                withContext(Dispatchers.Main) {
+                    binding.tvScannedData.text = "Ошибка активации: ${activateResponse.message}"
+                    binding.layoutScanErr.visibility = View.VISIBLE
+                    binding.layoytBlank.visibility = View.GONE
+                }
+                return@launch
+            }
+
+            val deviceUuid = activateResponse.device_uuid!!
+
+            // Сохраняем device_uuid
+            prefs.edit().putString("device_uuid", deviceUuid).apply()
+
+            // Подготовка статуса сопряжения
+            val konf = appLic.appInfoBD.value?.toIntOrNull() ?: 0
+            val bd = 0
+            val input = appLic.appInfoINPUT.value?.toIntOrNull() ?: 0
+            val output = appLic.appInfoOUT.value?.toIntOrNull() ?: 0
+
+            // Шаг 2: Отправка статуса сопряжения
+            val statusResponse = apiClient.sendPairingStatus(
+                token = deviceUuid,
+                pairing = true,
+                konf = konf,
+                bd = bd,
+                input = input,
+                output = output
+            )
+
+            withContext(Dispatchers.Main) {
+                if (statusResponse.status == "ok" && statusResponse.paired == true) {
+                    // Успешное сопряжение
+                    appLic.appConnect1C = 1
+                    val editor = prefs.edit()
+                    editor.putString(APP_PREF_LIC, appLic.appLIC).apply()
+                    editor.putString(APP_PREF_PORT, appLic.appPORT).apply()
+                    editor.putString(APP_PREF_KONF, appLic.appKONF).apply()
+                    editor.putInt(APP_PREF_CONNECT1C, 2).apply()
+                    editor.putString(APP_PREF_ОPER, appLic.appOper).apply()
+                    editor.putString(APP_PREF_CLIENT, appLic.appClient).apply()
+
+                    val navController = binding.root.findNavController()
+                    navController.navigate(R.id.action_scanerFragment_to_menuFragment)
+                } else {
+                    binding.tvScannedData.text = "Ошибка сопряжения"
+                    binding.layoutScanErr.visibility = View.VISIBLE
+                    binding.layoytBlank.visibility = View.GONE
+                }
+            }
+        }
     }
 }

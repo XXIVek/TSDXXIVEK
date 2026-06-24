@@ -11,6 +11,9 @@
         android:label="fragment_logo"
         tools:layout="@layout/fragment_logo" >
         <action
+            android:id="@+id/action_logoFragment_to_self"
+            app:destination="@id/logoFragment" />
+        <action
             android:id="@+id/action_logoFragment_to_menuFragment"
             app:destination="@id/menuFragment" />
         <action
@@ -46,6 +49,9 @@
         <action
             android:id="@+id/action_menuFragment_to_itemListFragment"
             app:destination="@id/itemListFragment" />
+        <action
+            android:id="@+id/action_menuFragment_to_fileDownloadFragment"
+            app:destination="@id/fileDownloadFragment" />
     </fragment>
     <fragment
         android:id="@+id/scanerFragment"
@@ -58,6 +64,9 @@
         <action
             android:id="@+id/action_scanerFragment_to_addItemFragment"
             app:destination="@id/addItemFragment" />
+        <action
+            android:id="@+id/action_scanerFragment_to_menuFragment"
+            app:destination="@id/menuFragment" />
     </fragment>
     <fragment
         android:id="@+id/scanerFragment_d"
@@ -169,6 +178,9 @@
         <action
             android:id="@+id/action_startFragment_to_logoFragment"
             app:destination="@id/logoFragment" />
+        <action
+            android:id="@+id/action_startFragment_to_menuFragment"
+            app:destination="@id/menuFragment" />
     </fragment>
     <fragment
         android:id="@+id/itemListFragment1"
@@ -193,4 +205,9 @@
         android:name="com.xxivek.tsdxxivek.about"
         android:label="fragment_about"
         tools:layout="@layout/fragment_about" />
+    <fragment
+        android:id="@+id/fileDownloadFragment"
+        android:name="com.xxivek.tsdxxivek.api.FileDownloadFragment"
+        android:label="fragment_file_download"
+        tools:layout="@layout/fragment_file_download" />
 </navigation>

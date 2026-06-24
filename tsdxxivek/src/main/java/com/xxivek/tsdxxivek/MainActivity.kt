@@ -11,10 +11,19 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
+import com.xxivek.tsdxxivek.api.ApiClient
+import com.xxivek.tsdxxivek.api.DeviceStatusResponse
 import com.xxivek.tsdxxivek.dataDB.ItemDao
 import com.xxivek.tsdxxivek.databinding.ActivityMainBinding
 import com.xxivek.tsdxxivek.utilAPP.LicenseUtil
 import com.xxivek.tsdxxivek.utilAPP.appendLog
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.Dispatchers.Main
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.net.ServerSocket
 import java.net.Socket
@@ -120,6 +129,9 @@ class MainActivity : AppCompatActivity() {
         }
         apptheme()
 
+        // Проверка статуса сопряжения при запуске
+        checkDeviceStatus()
+
         super.onCreate(savedInstanceState)
 
         setContentView(R.layout.activity_main)
@@ -218,5 +230,77 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val PERMISSION_CAMERA_REQUEST = 1
+    }
+
+    /**
+     * Проверка статуса устройства при запуске.
+     * Если use_website=true и device_uuid сохранён — запрашиваем статус с сервера.
+     * Если pairing=true — переходим на главное меню, иначе — сбрасываем и на сопряжение.
+     */
+    private fun checkDeviceStatus() {
+        val useSite = prefs.getBoolean(APP_PREF_USE_WEBSITE, false)
+        val deviceUuid = prefs.getString("device_uuid", null)
+
+        if (!useSite || deviceUuid.isNullOrBlank()) {
+            appendLog("MainActivity", "Нет устройства/сайта — переход к экрану сопряжения")
+            return
+        }
+
+        appendLog("MainActivity", "Проверка статуса устройства: uuid=$deviceUuid")
+
+        CoroutineScope(IO).launch {
+            val apiClient = ApiClient()
+            val status = apiClient.getDeviceStatus(baseContext, deviceUuid)
+
+            withContext(Main) {
+                if (status.httpCode == -1) {
+                    appendLog("MainActivity", "Ошибка сети при проверке статуса")
+                    resetPairingState()
+                } else if (status.pairing) {
+                    appendLog("MainActivity", "Устройство сопряжено — переход на главное меню")
+                    // Сохраняем полученные данные
+                    appLic.appLIC = "1"
+                    appLic.appConnect1C = 2
+                    appLic.appKONF = status.konf.toString()
+                    saveState()
+                } else {
+                    appendLog("MainActivity", "Сопряжение отсутствует — сброс и переход к сопряжению")
+                    resetPairingState()
+                }
+            }
+        }
+    }
+
+    /**
+     * Сброс всех настроек сопряжения к значениям по умолчанию
+     */
+    private fun resetPairingState() {
+        val editor = prefs.edit()
+        editor.putString(APP_PREF_LIC, "-1").apply()
+        editor.putString(APP_PREF_PORT, "0").apply()
+        editor.putString(APP_PREF_KONF, "").apply()
+        editor.putInt(APP_PREF_CONNECT1C, 0).apply()
+        editor.putString(APP_PREF_ОPER, "").apply()
+        editor.putString(APP_PREF_CLIENT, "").apply()
+        editor.remove("device_uuid").apply()
+
+        appLic.appLIC = "-1"
+        appLic.appConnect1C = 0
+        appLic.appKONF = "Не определена"
+        appLic.appOper = ""
+        appLic.appClient = ""
+    }
+
+    /**
+     * Сохранение состояния appLic в SharedPreferences
+     */
+    private fun saveState() {
+        val editor = prefs.edit()
+        editor.putString(APP_PREF_LIC, appLic.appLIC).apply()
+        editor.putString(APP_PREF_PORT, appLic.appPORT).apply()
+        editor.putString(APP_PREF_KONF, appLic.appKONF).apply()
+        editor.putInt(APP_PREF_CONNECT1C, appLic.appConnect1C).apply()
+        editor.putString(APP_PREF_ОPER, appLic.appOper).apply()
+        editor.putString(APP_PREF_CLIENT, appLic.appClient).apply()
     }
 }

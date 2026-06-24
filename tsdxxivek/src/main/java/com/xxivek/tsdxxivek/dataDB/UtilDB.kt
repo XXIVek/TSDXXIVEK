@@ -173,9 +173,10 @@ class UtilDB {
      * Launching a new coroutine to insert an item in a non-blocking way
      */
     suspend fun insertItemList(mItemList: List<Item>) = coroutineScope{
-        launch {
+        val job = async {
             itemDatabase?.insertList(mItemList)
         }
+        job.await()
     }
     suspend fun CountInfo() = coroutineScope{
         launch {

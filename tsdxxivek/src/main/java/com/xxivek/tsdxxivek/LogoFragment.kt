@@ -5,6 +5,9 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import androidx.navigation.findNavController
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
@@ -105,8 +108,26 @@ class LogoFragment : Fragment() {
             }else if (checkedId==binding.radioButtonLocal.id) {
                 USE_WEBSITE=false
             }
+            // При переключении режима сбрасываем все настройки сопряжения
             val editor = prefs.edit()
             editor.putBoolean(APP_PREF_USE_WEBSITE, USE_WEBSITE).apply()
+            editor.putString(APP_PREF_LIC, "-1").apply()
+            editor.putString(APP_PREF_PORT, "0").apply()
+            editor.putString(APP_PREF_KONF, "").apply()
+            editor.putInt(APP_PREF_CONNECT1C, 0).apply()
+            editor.putString(APP_PREF_ОPER, "").apply()
+            editor.putString(APP_PREF_CLIENT, "").apply()
+            editor.remove("device_uuid").apply()
+
+            // Обновляем in-memory состояние
+            appLic.appLIC = "-1"
+            appLic.appConnect1C = 0
+            appLic.appKONF = "Не определена"
+
+            // Переходим к logoFragment для обновления UI
+            Handler(Looper.getMainLooper()).post {
+                binding.root.findNavController().navigate(R.id.action_logoFragment_to_self)
+            }
         }
         binding.bLogoExit.setOnClickListener{MainActivity().appExit()}
         binding.buttonSite.setOnClickListener {
@@ -131,6 +152,7 @@ class LogoFragment : Fragment() {
             editor.putInt(APP_PREF_CONNECT1C, 0).apply()
             editor.putString(APP_PREF_ОPER, "").apply()
             editor.putString(APP_PREF_CLIENT, "").apply()
+            editor.remove("device_uuid").apply()
             val intent = Intent(context, MainActivity::class.java)
             startActivity(intent)
         }

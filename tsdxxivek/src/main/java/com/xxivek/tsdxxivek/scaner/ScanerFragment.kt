@@ -1,9 +1,8 @@
-@file:Suppress("DEPRECATION")
-
 package com.xxivek.tsdxxivek.scaner
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.*
 import android.media.Image
@@ -84,6 +83,8 @@ class ScanerFragment : Fragment() {
     private var previewUseCase: Preview? = null
     //
     private var analysisUseCase: ImageAnalysis? = null
+    // Executor для анализа изображений (закрыть в onDestroyView)
+    private var cameraExecutor: java.util.concurrent.ExecutorService? = null
 
     @SuppressLint("CutPasteId")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -97,6 +98,8 @@ class ScanerFragment : Fragment() {
         // так лучше чем типовой пока
         _binding = FragmentScanerBinding.inflate(inflater, container, false)
         redyScan=1
+        // Инициализируем executor один раз
+        cameraExecutor = Executors.newSingleThreadExecutor()
         return binding.root
     }
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -175,10 +178,21 @@ class ScanerFragment : Fragment() {
 
         // Активация по коду
         binding.bActivate.setOnClickListener {
-            val code = binding.etActivationCode.text.toString().trim()
-            if (code.isNotBlank() && code.length >= 4) {
-                activateDevice(code)
+            val code = binding.etActivationCode.text.toString().trim().uppercase()
+            if (code.isEmpty()) {
+                binding.tvScannedData.text = "Введите код активации"
+                binding.layoutScanErr.visibility = View.VISIBLE
+                binding.layoytBlank.visibility = View.GONE
+                return@setOnClickListener
             }
+            if (!isValidActivationCode(code)) {
+                binding.tvScannedData.text = "Неверный формат кода\nНужно 6 символов: A-Z, 0-9"
+                binding.layoutScanErr.visibility = View.VISIBLE
+                binding.layoytBlank.visibility = View.GONE
+                return@setOnClickListener
+            }
+            binding.etActivationCode.setText(code)
+            activateDevice(code)
         }
 
 // Управление фокусом
@@ -250,6 +264,37 @@ class ScanerFragment : Fragment() {
         binding.textInputRes.text=textInputRes
     }
 
+    /**
+     * Проверка: режим работы с сайтом (подключено к серверу)
+     */
+    private fun isSiteMode(): Boolean {
+        return appLic.appConnect1C > 0
+    }
+
+    /**
+     * Проверка: устройство не активировано
+     */
+    private fun isNotActivated(): Boolean {
+        return appLic.appLIC == "-1"
+    }
+
+    /**
+     * Проверка: выбран режим "Сайт"
+     */
+    private fun isWebsiteMode(): Boolean {
+        val context = binding.root.context
+        val useSite = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+            .getBoolean("use_website", false)
+        return useSite
+    }
+
+    /**
+     * Валидация кода активации: 6 символов, только A-Z и 0-9
+     */
+    private fun isValidActivationCode(code: String): Boolean {
+        return code.length == 6 && code.matches(Regex("^[A-Z0-9]+$"))
+    }
+
     private fun onScan() {
         binding.tvScannedType.text = "0"
         binding.tvScannedData.text = "Штрих код не распознан"
@@ -257,14 +302,29 @@ class ScanerFragment : Fragment() {
         manualInputSh=false
         bindPreviewUseCase()
         bindAnalyseUseCase()
-        if (appLic.appLIC=="-1"){
-            binding.layoutScanResultTest.visibility=View.VISIBLE
-            binding.layoytBlank.visibility=View.GONE
-            binding.layoutScanResultRab.visibility=View.GONE
-        }else {
+
+        // Если выбран режим "Сайт" и устройство не активировано — показываем поле ввода кода активации
+        if (isWebsiteMode() && isNotActivated()) {
+            binding.textBlank.text = "Введите код активации с экрана"
+            binding.layoutActivation.visibility = View.VISIBLE
+            binding.bActivate.visibility = View.VISIBLE
+            binding.etActivationCode.hint = "XXXXXX"
+            binding.etActivationCode.setText("")
+            binding.bManualinputSh.visibility = View.GONE
+            binding.layoytBlank.visibility = View.VISIBLE
+            binding.layoutScanResultRab.visibility = View.GONE
+            binding.layoutScanResultTest.visibility = View.GONE
+        } else if (isNotActivated()) {
+            // Локальный режим, устройство не активировано — тестовый режим
+            binding.layoutScanResultTest.visibility = View.VISIBLE
+            binding.layoytBlank.visibility = View.GONE
+            binding.layoutScanResultRab.visibility = View.GONE
+        } else {
             binding.textBlank.text="Наведите камеру на штрихкод"
             binding.bManualinputSh.visibility=View.VISIBLE
             binding.layoytBlank.visibility=View.VISIBLE
+            binding.layoutActivation.visibility = View.GONE
+            binding.bActivate.visibility = View.GONE
             binding.layoutScanResultRab.visibility=View.GONE
             binding.layoutScanResultTest.visibility=View.GONE
         }
@@ -391,12 +451,10 @@ class ScanerFragment : Fragment() {
             .setTargetResolution(Size(720, 1024))
             .setTargetRotation(previewViewAct.display.rotation)
             .build()
-        // Инициализируем нашего фонового исполнителя
-        val cameraExecutor = Executors.newSingleThreadExecutor()
 
         //подставляем кадр анализатору для разбора
         analysisUseCase?.setAnalyzer(
-            cameraExecutor,
+            cameraExecutor!!,
             { imageProxy ->
                 analysisCodeProces(barcodeScanner, imageProxy)
             }
@@ -414,16 +472,28 @@ class ScanerFragment : Fragment() {
             Log.e(TAG, illegalArgumentException.message ?: "IllegalArgumentException")
         }
 
-        if (appLic.appLIC=="-1"){
-            binding.layoutScanResultTest.visibility=View.VISIBLE
-            binding.layoytBlank.visibility=View.GONE
-            binding.layoutScanResultRab.visibility=View.GONE
-        }else {
+        if (isWebsiteMode() && isNotActivated()) {
+            binding.textBlank.text = "Введите код активации с экрана"
+            binding.layoutActivation.visibility = View.VISIBLE
+            binding.bActivate.visibility = View.VISIBLE
+            binding.etActivationCode.hint = "XXXXXX"
+            binding.etActivationCode.setText("")
+            binding.bManualinputSh.visibility = View.GONE
+            binding.layoytBlank.visibility = View.VISIBLE
+            binding.layoutScanResultRab.visibility = View.GONE
+            binding.layoutScanResultTest.visibility = View.GONE
+        } else if (isNotActivated()) {
+            binding.layoutScanResultTest.visibility = View.VISIBLE
+            binding.layoytBlank.visibility = View.GONE
+            binding.layoutScanResultRab.visibility = View.GONE
+        } else {
             binding.textBlank.text="Наведите камеру на штрихкод"
             binding.bManualinputSh.visibility=View.VISIBLE
-            binding.layoutScanResultRab.visibility=View.GONE
-            binding.layoutScanResultTest.visibility=View.GONE
             binding.layoytBlank.visibility=View.VISIBLE
+            binding.layoutActivation.visibility = View.GONE
+            binding.bActivate.visibility = View.GONE
+            binding.layoutScanResultRab.visibility = View.GONE
+            binding.layoutScanResultTest.visibility = View.GONE
         }
 
     }
@@ -487,21 +557,21 @@ class ScanerFragment : Fragment() {
         val inputImage = InputImage.fromBitmap(bitMap,0)
         barcodeScanner.process(inputImage)
             .addOnSuccessListener { barcodes ->
+                if (_binding == null) return@addOnSuccessListener
                 if (redyScan==1) {
                     binding.tvScannedType.text = "0"
                     binding.tvScannedData.text = "Штрих код не распознан"
                     resInput=0
                     binding.layoutScanResultRab.visibility=View.GONE
                     binding.layoutScanErr.visibility=View.GONE
-                    binding.layoutCamera.setBackgroundColor(super.
-                        getResources().getColor(R.color.app_fon))
+                    binding.layoutCamera.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.app_fon))
 
                     barcodes.forEach { barcode ->
 
                         val rawValue = barcode.rawValue
                         val valueType = barcode.valueType
 
-                        binding.layoutCamera.setBackgroundColor(super.getResources().getColor(R.color.ok))
+                        binding.layoutCamera.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.ok))
                         redyScan = 0
                         if (appLic.appLIC=="-1"){
                             val mText=rawValue.toString()
@@ -511,10 +581,23 @@ class ScanerFragment : Fragment() {
                                 //cameraProvider?.shutdown()
                                 navControler.navigate(R.id.action_scanerFragment_to_pairingFragment)
                             } else if (mText.startsWith("PAIR:")) {
-                                val activationCode = mText.substringAfter("PAIR:")
-                                if (activationCode.isNotBlank() && activationCode.length >= 4) {
+                                val activationCode = mText.substringAfter("PAIR:").uppercase()
+                                if (isValidActivationCode(activationCode)) {
+                                    // Корректный код — показываем layout_activation с заполненным кодом
+                                    binding.textBlank.text = "QR-код активации найден"
+                                    binding.layoutActivation.visibility = View.VISIBLE
+                                    binding.bActivate.visibility = View.VISIBLE
+                                    binding.etActivationCode.hint = "XXXXXX"
                                     binding.etActivationCode.setText(activationCode)
-                                    activateDevice(activationCode)
+                                    binding.bManualinputSh.visibility = View.GONE
+                                    binding.layoytBlank.visibility = View.VISIBLE
+                                    binding.layoutScanResultRab.visibility = View.GONE
+                                    binding.layoutScanResultTest.visibility = View.GONE
+                                } else {
+                                    // Неверный формат — ошибка
+                                    binding.tvScannedData.text = "Неверный формат QR-кода\nОжидается PAIR:XXXXXX"
+                                    binding.layoutScanErr.visibility = View.VISIBLE
+                                    binding.layoytBlank.visibility = View.GONE
                                 }
                             } else {
                                 binding.tvScannedType.text = valueType.toString()
@@ -617,15 +700,12 @@ class ScanerFragment : Fragment() {
         binding.textRabRes.text=resInput.toString()
     }
 
-    override fun onStop() {
-        redyScan=0
-        if (analysisUseCase != null) {
-            cameraProvider!!.unbind(analysisUseCase)
-        }
-        if (previewUseCase != null) {
-            cameraProvider!!.unbind(previewUseCase)
-        }
-        super.onStop()
+    override fun onDestroyView() {
+        super.onDestroyView()
+        // Закрываем executor чтобы избежать утечки
+        cameraExecutor?.shutdown()
+        cameraExecutor = null
+        _binding = null
     }
 
     override fun onResume() {
@@ -657,35 +737,49 @@ class ScanerFragment : Fragment() {
      * Шаг 2: PUT /api/v1/devices/status — отправляем статус сопряжения
      */
     private fun activateDevice(activationCode: String) {
+        android.util.Log.d("ScanerFragment", "activateDevice: START code=$activationCode")
         CoroutineScope(IO).launch {
             val apiClient = ApiClient()
-            val prefs = binding.root.context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+            val context = binding.root.context
+            val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
 
             // Шаг 1: Активация
-            val activateResponse = apiClient.activateDevice(activationCode)
+            android.util.Log.d("ScanerFragment", "activateDevice: Step 1 - calling activateDevice API")
+            val activateResponse = apiClient.activateDevice(context, activationCode)
+            android.util.Log.d("ScanerFragment", "activateDevice: Step 1 result: success=${activateResponse.success}, uuid=${activateResponse.device_uuid}, httpCode=${activateResponse.httpCode}, msg=${activateResponse.message}")
 
             if (!activateResponse.success || activateResponse.device_uuid.isNullOrBlank()) {
+                val errorMsg = when (activateResponse.httpCode) {
+                    404 -> "Код активации истёк или не найден\nСгенерируйте новый код на сервере"
+                    401 -> "Ошибка авторизации. Проверьте соединение"
+                    -1 -> "Ошибка сети. Проверьте подключение к интернету"
+                    else -> "Ошибка активации: ${activateResponse.message}"
+                }
                 withContext(Dispatchers.Main) {
-                    binding.tvScannedData.text = "Ошибка активации: ${activateResponse.message}"
+                    binding.tvScannedData.text = errorMsg
                     binding.layoutScanErr.visibility = View.VISIBLE
                     binding.layoytBlank.visibility = View.GONE
                 }
+                android.util.Log.d("ScanerFragment", "activateDevice: Step 1 FAILED - showing error")
                 return@launch
             }
 
             val deviceUuid = activateResponse.device_uuid!!
+            android.util.Log.d("ScanerFragment", "activateDevice: Step 1 OK, device_uuid=$deviceUuid")
 
             // Сохраняем device_uuid
             prefs.edit().putString("device_uuid", deviceUuid).apply()
 
             // Подготовка статуса сопряжения
-            val konf = appLic.appInfoBD.value?.toIntOrNull() ?: 0
+            val konf = appLic.appInfoBD.value ?: 0
             val bd = 0
-            val input = appLic.appInfoINPUT.value?.toIntOrNull() ?: 0
-            val output = appLic.appInfoOUT.value?.toIntOrNull() ?: 0
+            val input = appLic.appInfoINPUT.value ?: 0
+            val output = appLic.appInfoOUT.value ?: 0
 
             // Шаг 2: Отправка статуса сопряжения
+            android.util.Log.d("ScanerFragment", "activateDevice: Step 2 - calling sendPairingStatus API")
             val statusResponse = apiClient.sendPairingStatus(
+                context = context,
                 token = deviceUuid,
                 pairing = true,
                 konf = konf,
@@ -693,11 +787,14 @@ class ScanerFragment : Fragment() {
                 input = input,
                 output = output
             )
+            android.util.Log.d("ScanerFragment", "activateDevice: Step 2 result: status=${statusResponse.status}, paired=${statusResponse.paired}, msg=${statusResponse.message}")
 
             withContext(Dispatchers.Main) {
                 if (statusResponse.status == "ok" && statusResponse.paired == true) {
+                    android.util.Log.d("ScanerFragment", "activateDevice: SUCCESS - navigating to menu")
                     // Успешное сопряжение
-                    appLic.appConnect1C = 1
+                    appLic.appLIC = "1"
+                    appLic.appConnect1C = 2
                     val editor = prefs.edit()
                     editor.putString(APP_PREF_LIC, appLic.appLIC).apply()
                     editor.putString(APP_PREF_PORT, appLic.appPORT).apply()
@@ -709,7 +806,8 @@ class ScanerFragment : Fragment() {
                     val navController = binding.root.findNavController()
                     navController.navigate(R.id.action_scanerFragment_to_menuFragment)
                 } else {
-                    binding.tvScannedData.text = "Ошибка сопряжения"
+                    android.util.Log.e("ScanerFragment", "activateDevice: Step 2 FAILED - status=${statusResponse.status}, paired=${statusResponse.paired}")
+                    binding.tvScannedData.text = "Ошибка сопряжения: ${statusResponse.message ?: statusResponse.status}"
                     binding.layoutScanErr.visibility = View.VISIBLE
                     binding.layoytBlank.visibility = View.GONE
                 }

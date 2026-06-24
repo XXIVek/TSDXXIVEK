@@ -16,23 +16,23 @@ class ConnectFragment : Fragment() {
     private var _binding: FragmentConnectBinding?=null
     val binding get() = _binding!!
 
-//    private lateinit var prefs: SharedPreferences
+    private lateinit var prefs: SharedPreferences
 
-//    override fun onCreate(savedInstanceState: Bundle?) {
-//        super.onCreate(savedInstanceState)
-//    }
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        prefs = requireContext().getSharedPreferences("settings", Context.MODE_PRIVATE)
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        // так лучше чем типовой пока
         _binding = FragmentConnectBinding.inflate(inflater, container, false)
         return binding.root
     }
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-//        prefs = binding.root.context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+        prefs = requireContext().getSharedPreferences("settings", Context.MODE_PRIVATE)
      }
 
      override fun onResume() {

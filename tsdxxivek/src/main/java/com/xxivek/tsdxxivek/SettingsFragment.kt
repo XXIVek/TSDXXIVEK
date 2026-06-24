@@ -38,11 +38,11 @@ class SettingsFragment : Fragment() {
         binding.bSetgeneral.setOnClickListener(
             Navigation.createNavigateOnClickListener(R.id.action_settingsFragment_to_setgeneralFragment)
         )
+        // Временно b_setdb всегда видна
+        binding.bSetdb.visibility=View.VISIBLE
         if (appLic.appDEB=="1"){
-            binding.bSetdb.visibility=View.VISIBLE
             binding.bSetconnect.visibility=View.VISIBLE
         }else{
-            binding.bSetdb.visibility=View.GONE
             binding.bSetconnect.visibility=View.GONE
         }
     }

@@ -1,5 +1,3 @@
-@file:Suppress("DEPRECATION")
-
 package com.xxivek.tsdxxivek.scaner
 
 import android.annotation.SuppressLint
@@ -15,6 +13,7 @@ import android.view.ViewGroup
 import android.widget.NumberPicker
 import androidx.camera.core.*
 import androidx.camera.core.Camera
+import androidx.core.content.ContextCompat
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.fragment.app.activityViewModels
@@ -219,16 +218,16 @@ class ScanerFragment_d : Fragment() {
             binding.sight.text = "+"
             sight = true
             binding.fabRabConfirm.text="ПРИБАВИТЬ"
-            binding.sight.setBackgroundColor(super.getResources().getColor(R.color.colorPrimary))
-            binding.fabRabConfirm.setBackgroundColor(super.getResources().getColor(R.color.colorPrimary))
+            binding.sight.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.colorPrimary))
+            binding.fabRabConfirm.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.colorPrimary))
         }
         binding.sight.setOnClickListener {
             if (sight) {
                 sight = false
                 binding.sight.text = "-"
                 binding.fabRabConfirm.text="ОТНЯТЬ"
-                binding.fabRabConfirm.setBackgroundColor(super.getResources().getColor(R.color.error))
-                binding.sight.setBackgroundColor(super.getResources().getColor(R.color.error))
+                binding.fabRabConfirm.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.error))
+                binding.sight.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.error))
 //                binding.testRes.text=resInput.unaryMinus().toString()
             }
             else {
@@ -236,8 +235,8 @@ class ScanerFragment_d : Fragment() {
                 binding.sight.text = "+"
 //                binding.testRes.text=resInput.toString()
                 binding.fabRabConfirm.text="ПРИБАВИТЬ"
-                binding.sight.setBackgroundColor(super.getResources().getColor(R.color.colorPrimary))
-                binding.fabRabConfirm.setBackgroundColor(super.getResources().getColor(R.color.colorPrimary))
+                binding.sight.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.colorPrimary))
+                binding.fabRabConfirm.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.colorPrimary))
             }
         }
 //        binding.fabRabMin.setOnClickListener {changeResInput(-1)}
@@ -618,15 +617,14 @@ class ScanerFragment_d : Fragment() {
                     binding.layoutScanResultRab.visibility=View.GONE
                     //Dennis
                     binding.layoutScanErr.visibility=View.GONE
-                    binding.layoutCamera.setBackgroundColor(super.
-                        getResources().getColor(R.color.app_fon))
+                    binding.layoutCamera.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.app_fon))
 
                     barcodes.forEach { barcode ->
 
                         val rawValue = barcode.rawValue
                         val valueType = barcode.valueType
 
-                        binding.layoutCamera.setBackgroundColor(super.getResources().getColor(R.color.ok))
+                        binding.layoutCamera.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.ok))
                         redyScan = 0
                         if (appLic.appLIC=="-1"){
                             val mText=rawValue.toString()

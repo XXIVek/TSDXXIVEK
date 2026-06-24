@@ -106,8 +106,8 @@ class LicenseUtil :ViewModel(){
             appendLog("ViewModel appLIC",
                 "отправка запроса состояния БД - Количество не пустых записей: ")
 //            UtilDB().CountNotEmptyInfo()
-            var mCount=appLic.appInfoCountBD.value!!
-            var mCountNotEmpty=appLic.appInfoCountNotEmptyBD.value!!
+            var mCount=appLic.appInfoCountBD.value ?: 0
+            var mCountNotEmpty=appLic.appInfoCountNotEmptyBD.value ?: 0
 //            val job=launch {
 //                try {
 //                    appendLog("ViewModel appLIC",

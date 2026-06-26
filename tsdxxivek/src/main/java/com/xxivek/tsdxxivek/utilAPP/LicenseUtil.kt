@@ -12,6 +12,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.launch
 import java.io.IOException
+import android.content.Context
+import com.xxivek.tsdxxivek.AppConstants
 import com.xxivek.tsdxxivek.utilAPP.appendLog
 
 class LicenseUtil :ViewModel(){
@@ -103,9 +105,7 @@ class LicenseUtil :ViewModel(){
             appendLog("ViewModel appLIC",
                 "отправка запроса состояния БД - Количество записей: ")
             UtilDB().CountInfo()
-            appendLog("ViewModel appLIC",
-                "отправка запроса состояния БД - Количество не пустых записей: ")
-//            UtilDB().CountNotEmptyInfo()
+            UtilDB().CountNotEmptyInfo()
             var mCount=appLic.appInfoCountBD.value ?: 0
             var mCountNotEmpty=appLic.appInfoCountNotEmptyBD.value ?: 0
 //            val job=launch {
@@ -163,5 +163,23 @@ class LicenseUtil :ViewModel(){
                         "Наличие входящих данных: "+appLic.appInfoINPUT.value+"\n" +
                         "Наличие исходящих данных: "+appLic.appInfoOUT.value+"\n")
         }
+    }
+
+    /**
+     * Установить oper и сохранить в SharedPreferences.
+     */
+    fun setAppOper(value: String, context: Context) {
+        appOper = value
+        val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+        prefs.edit().putString(AppConstants.APP_PREF_ОPER, value).apply()
+    }
+
+    /**
+     * Установить client и сохранить в SharedPreferences.
+     */
+    fun setAppClient(value: String, context: Context) {
+        appClient = value
+        val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+        prefs.edit().putString(AppConstants.APP_PREF_CLIENT, value).apply()
     }
 }

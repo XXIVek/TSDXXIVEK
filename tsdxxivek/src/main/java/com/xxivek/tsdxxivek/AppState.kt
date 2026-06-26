@@ -59,6 +59,7 @@ class AppState {
     // Статус устройства от сервера
     var appInputStatus: Int = 0
     var appOutputStatus: Int = 0
+    var appBd: Int = 0
     var hasPendingData: Boolean = false
     var appStatusUpdatedAt: Long = 0
 
@@ -103,8 +104,19 @@ class AppState {
         headingHTTP = ""
     }
     
-    fun setAppOper(value: String) { appOper = value }
-    fun setAppClient(value: String) { appClient = value }
+    fun setAppOper(value: String) {
+        appOper = value
+        // Сохраняем в SharedPreferences
+        val prefs = TSDXXIVekApplication().getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
+        prefs.edit().putString(AppConstants.APP_PREF_ОPER, value).apply()
+    }
+    
+    fun setAppClient(value: String) {
+        appClient = value
+        // Сохраняем в SharedPreferences
+        val prefs = TSDXXIVekApplication().getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
+        prefs.edit().putString(AppConstants.APP_PREF_CLIENT, value).apply()
+    }
     fun setTOPIC(value: Int) { TOPIC = value }
     fun setDESIGN(value: Int) { DESIGN = value }
 }

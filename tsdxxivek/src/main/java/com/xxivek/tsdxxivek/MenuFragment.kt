@@ -43,6 +43,7 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
     private var pollingService: StatusPollingService? = null
     private var apiClient: FileDownloadApi? = null
     private var exchangeParser: ExchangeDataParser? = null
+    private lateinit var appState: AppState
 
     // Скачанные файлы, готовые к загрузке в БД
     private var downloadedFiles: MutableList<File> = mutableListOf()
@@ -78,6 +79,8 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
 //        // Подключаем базу данных с интерфейсом обработки данных
 //        itemDatabase=(activity?.application as TSDXXIVekApplication).database.itemDao()
 
+        appState = (requireActivity().application as TSDXXIVekApplication).appState
+
         if (DESIGN == 0) {
            binding.bScaner.setOnClickListener (
                 Navigation.createNavigateOnClickListener(R.id.action_menuFragment_to_scanerFragment))
@@ -96,10 +99,20 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
 
         binding.bInput.setOnClickListener { onInput() }
         binding.bOutput.setOnClickListener{
-            UtilDB().writeXML()
+            if (appLic.appConnect1C == 2) {
+                // Веб-режим: экспорт JSON + загрузка на сервер
+                exportToWebsite()
+            } else {
+                // Локальный режим: старый XML-экспорт
+                UtilDB().writeXML()
+            }
         }
         binding.bClearCont.setOnClickListener{
             UtilDB().clearQuantity()
+            if (appLic.appConnect1C == 2) {
+                // Веб-режим: после очистки quantity -> bd=3
+                appLic.appInfoBD.postValue(3)
+            }
         }
         val navControler = binding.root.findNavController()
         val fm=getParentFragmentManager()
@@ -132,6 +145,7 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
         activity?.runOnUiThread {
             if (_binding != null) {
                 updateInputStatusUI(input)
+                updateOutputStatusUI(output)
             }
         }
     }
@@ -180,29 +194,30 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
      * Обновить textViewBD в зависимости от статуса БД.
      */
     private fun updateBDStatus(bdStatus: Int) {
+        val ctx = requireContext()
         when (bdStatus) {
             0 -> {
-                binding.textViewBD.setBackgroundColor(ContextCompat.getColor(context!!, R.color.text_fon))
+                binding.textViewBD.setBackgroundColor(ContextCompat.getColor(ctx, R.color.text_fon))
                 binding.textViewBD.text = "БД: В базе данных нет записей"
-                binding.textViewOperInfo.setTextColor(ContextCompat.getColor(context!!, R.color.text_textColor))
+                binding.textViewOperInfo.setTextColor(ContextCompat.getColor(ctx, R.color.text_textColor))
                 binding.textViewOperInfo.text = "Операция не определена."
             }
             1 -> {
-                binding.textViewBD.setBackgroundColor(ContextCompat.getColor(context!!, R.color.error))
+                binding.textViewBD.setBackgroundColor(ContextCompat.getColor(ctx, R.color.error))
                 binding.textViewBD.text = "БД: Ошибка в работе с базой данных"
             }
             2 -> {
-                binding.textViewBD.setBackgroundColor(ContextCompat.getColor(context!!, R.color.attention))
+                binding.textViewBD.setBackgroundColor(ContextCompat.getColor(ctx, R.color.attention))
                 binding.textViewBD.text = "БД: Всего $mCount зап., из них выб. $mCountNotEmpty"
                 updateOperInfo()
             }
             3 -> {
-                binding.textViewBD.setBackgroundColor(ContextCompat.getColor(context!!, R.color.ok))
+                binding.textViewBD.setBackgroundColor(ContextCompat.getColor(ctx, R.color.ok))
                 binding.textViewBD.text = "БД: Всего $mCount зап."
                 updateOperInfo()
             }
             -1 -> {
-                binding.textViewBD.setBackgroundColor(ContextCompat.getColor(context!!, R.color.load))
+                binding.textViewBD.setBackgroundColor(ContextCompat.getColor(ctx, R.color.load))
                 binding.textViewBD.text = "БД: Подождите... Идет загрузка."
             }
         }
@@ -212,20 +227,21 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
      * Обновить textViewOperInfo в зависимости от appOper.
      */
     private fun updateOperInfo() {
+        val ctx = requireContext()
         if (appLic.appOper == "") {
-            binding.textViewOperInfo.setTextColor(ContextCompat.getColor(context!!, R.color.text_textColor))
+            binding.textViewOperInfo.setTextColor(ContextCompat.getColor(ctx, R.color.text_textColor))
             binding.textViewOperInfo.text = "Выберите вариант работы ТСД."
         } else if (appLic.appOper == "0") {
-            binding.textViewOperInfo.setTextColor(ContextCompat.getColor(context!!, R.color.ok))
+            binding.textViewOperInfo.setTextColor(ContextCompat.getColor(ctx, R.color.ok))
             binding.textViewOperInfo.text = "Инвентаризация."
         } else if (appLic.appOper == "1") {
-            binding.textViewOperInfo.setTextColor(ContextCompat.getColor(context!!, R.color.text_prihod))
+            binding.textViewOperInfo.setTextColor(ContextCompat.getColor(ctx, R.color.text_prihod))
             binding.textViewOperInfo.text = "Приход.\nПоставщик: ${appLic.appClient}"
         } else if (appLic.appOper == "2") {
-            binding.textViewOperInfo.setTextColor(ContextCompat.getColor(context!!, R.color.text_rashod))
+            binding.textViewOperInfo.setTextColor(ContextCompat.getColor(ctx, R.color.text_rashod))
             binding.textViewOperInfo.text = "Расход.\nКлиент: ${appLic.appClient}\nна сумму 0 рублей"
         } else if (appLic.appOper == "3") {
-            binding.textViewOperInfo.setTextColor(ContextCompat.getColor(context!!, R.color.text_rashod))
+            binding.textViewOperInfo.setTextColor(ContextCompat.getColor(ctx, R.color.text_rashod))
             binding.textViewOperInfo.text = "Сверка.\n${appLic.appClient}"
         }
     }
@@ -238,25 +254,26 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
      * input=-1 — ошибка (красный)
      */
     private fun updateInputStatusUI(input: Int) {
+        val ctx = requireContext()
         when (input) {
             0 -> {
-                binding.textViewInput.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.text_fon))
+                binding.textViewInput.setBackgroundColor(ContextCompat.getColor(ctx, R.color.text_fon))
                 binding.textViewInput.text = "Загрузка: Нет данных для загрузки"
             }
             3 -> {
-                binding.textViewInput.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.attention))
+                binding.textViewInput.setBackgroundColor(ContextCompat.getColor(ctx, R.color.attention))
                 binding.textViewInput.text = "Загрузка: Данные доступны. Нажмите 'Загрузить'"
             }
             6 -> {
-                binding.textViewInput.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.ok))
+                binding.textViewInput.setBackgroundColor(ContextCompat.getColor(ctx, R.color.ok))
                 binding.textViewInput.text = "Загрузка: Данные получены! Нажмите 'Загрузить'"
             }
             -1 -> {
-                binding.textViewInput.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.error))
+                binding.textViewInput.setBackgroundColor(ContextCompat.getColor(ctx, R.color.error))
                 binding.textViewInput.text = "Загрузка: Ошибка получения статуса"
             }
             else -> {
-                binding.textViewInput.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.text_fon))
+                binding.textViewInput.setBackgroundColor(ContextCompat.getColor(ctx, R.color.text_fon))
                 binding.textViewInput.text = "Загрузка: Статус $input"
             }
         }
@@ -266,25 +283,26 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
      * Обновить textViewOutput в зависимости от статуса output.
      */
     private fun updateOutputStatusUI(output: Int) {
+        val ctx = requireContext()
         when (output) {
             0 -> {
-                binding.textViewOutput.setBackgroundColor(ContextCompat.getColor(context!!, R.color.text_fon))
+                binding.textViewOutput.setBackgroundColor(ContextCompat.getColor(ctx, R.color.text_fon))
                 binding.textViewOutput.text = "Выгрузка: Отсутствуют записи для выгрузки"
             }
             1 -> {
-                binding.textViewOutput.setBackgroundColor(ContextCompat.getColor(context!!, R.color.error))
+                binding.textViewOutput.setBackgroundColor(ContextCompat.getColor(ctx, R.color.error))
                 binding.textViewOutput.text = "Выгрузка: Ошибка при попытке выгрузить данные"
             }
             2 -> {
-                binding.textViewOutput.setBackgroundColor(ContextCompat.getColor(context!!, R.color.attention))
+                binding.textViewOutput.setBackgroundColor(ContextCompat.getColor(ctx, R.color.attention))
                 binding.textViewOutput.text = "Выгрузка: Что то не так!"
             }
             3 -> {
-                binding.textViewOutput.setBackgroundColor(ContextCompat.getColor(context!!, R.color.ok))
+                binding.textViewOutput.setBackgroundColor(ContextCompat.getColor(ctx, R.color.ok))
                 binding.textViewOutput.text = "Выгрузка: Данные отправлены"
             }
             else -> {
-                binding.textViewOutput.setBackgroundColor(ContextCompat.getColor(context!!, R.color.text_fon))
+                binding.textViewOutput.setBackgroundColor(ContextCompat.getColor(ctx, R.color.text_fon))
                 binding.textViewOutput.text = "Выгрузка: Статус $output"
             }
         }
@@ -318,6 +336,7 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
         pollingService!!.startPolling(
             requireContext(),
             (requireActivity().application as TSDXXIVekApplication).appState,
+            appLic,
             apiClient!!
         )
 
@@ -353,13 +372,11 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
 
         // Подписываемся на состояние БД
         val infoBDliveDataObserver = Observer<Int>() { bdStatus ->
+            appState.appBd = bdStatus
             updateBDStatus(bdStatus)
+            // output=2 не определён в протоколе — не показываем
             if (mInfoOutput == 0) {
-                if (mCountNotEmpty > 0) {
-                    updateOutputStatusUI(2)
-                } else {
-                    updateOutputStatusUI(0)
-                }
+                updateOutputStatusUI(0)
             }
             appendLog("Главное меню", "Подписываемся на состояние БД")
         }
@@ -456,6 +473,99 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
     }
 
     // ----------------------------------------------------------------
+    // Выгрузка данных на сайт (режим "Сайт")
+    // ----------------------------------------------------------------
+
+    /**
+     * Экспорт данных из БД в JSON и загрузка на сервер.
+     */
+    private fun exportToWebsite() {
+        val context = requireContext()
+        val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+        val token = prefs.getString(AppConstants.APP_PREF_DEVICE_UUID, null)
+
+        if (token.isNullOrEmpty()) {
+            activity?.runOnUiThread {
+                Toast.makeText(context, "device_uuid не найден", Toast.LENGTH_SHORT).show()
+            }
+            return
+        }
+
+        appendLog("Главное меню", "exportToWebsite: начало")
+
+        CoroutineScope(IO).launch {
+            // Проверяем что есть данные для выгрузки (в фоновом потоке)
+            val items = itemDatabase?.getItemNotEmpty2() ?: emptyList()
+            if (items.isEmpty()) {
+                activity?.runOnUiThread {
+                    Toast.makeText(context, "Нет данных для выгрузки", Toast.LENGTH_SHORT).show()
+                }
+                return@launch
+            }
+
+            appendLog("Главное меню", "exportToWebsite: ${items.size} записей")
+
+            val api = apiClient ?: FileDownloadApi()
+            val result = api.exportAndUpload(
+                context,
+                token,
+                appLic.appOper,
+                appLic.appClient
+            )
+
+            appendLog("Главное меню", "exportToWebsite: success=${result.success}, ${result.message}")
+
+            activity?.runOnUiThread {
+                if (result.success) {
+                    // Обновляем статусы
+                    val appState = (requireActivity().application as TSDXXIVekApplication).appState
+                    appState.appOutputStatus = 3
+                    appLic.appInfoOUT.postValue(3)
+                    updateOutputStatusUI(3)
+
+                    appendLog("Главное меню", "Выгрузка успешна: ${items.size} записей, output=3")
+                } else {
+                    updateOutputStatusUI(1)
+                    Toast.makeText(context,
+                        "Ошибка выгрузки: ${result.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    appendLog("Главное меню", "Выгрузка не удалась: ${result.message}")
+                }
+            }
+
+            // Отправляем статус output=3 на сервер (после обновления UI)
+            if (result.success) {
+                val updateApi = apiClient ?: FileDownloadApi()
+                val appState = (requireActivity().application as TSDXXIVekApplication).appState
+                val updatePayload = DeviceStatusUpdate(
+                    pairing = true,
+                    konf = appLic.appKONF.toIntOrNull() ?: 0,
+                    bd = appState.appBd,
+                    input = appState.appInputStatus,
+                    output = 3
+                )
+                val updateResult = updateApi.updateDeviceStatusSync(context, token, updatePayload)
+                appendLog("Главное меню", "Отправлен статус output=3 на сервер: status=${updateResult.status}")
+
+                activity?.runOnUiThread {
+                    if (updateResult.status == "ok") {
+                        Toast.makeText(context,
+                            "Данные отправлены: ${items.size} записей\nСтатус подтверждён сервером",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    } else {
+                        Toast.makeText(context,
+                            "Данные отправлены, но статус не подтверждён: ${updateResult.status}",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+            }
+        }
+    }
+
+    // ----------------------------------------------------------------
     // Загрузка скачанных файлов в БД
     // ----------------------------------------------------------------
 
@@ -490,12 +600,25 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
         CoroutineScope(IO).launch {
             var successCount = 0
             var totalItems = 0
+            var parsedOper = ""
+            var parsedClient = ""
 
             for (file in downloadedFiles) {
                 val parser = exchangeParser ?: continue
                 val result = parser.parseFile(file)
 
                 if (result.success && result.data != null) {
+                    // Читаем oper и client из JSON
+                    val oper = result.data.get("oper")?.asString ?: ""
+                    val client = result.data.get("client")?.asString ?: ""
+                    if (oper.isNotBlank()) parsedOper = oper
+                    if (client.isNotBlank()) parsedClient = client
+
+                    // Перезаписываем локальные значения (с сохранением в SharedPreferences)
+                    appLic.setAppOper(parsedOper, requireContext())
+                    appLic.setAppClient(parsedClient, requireContext())
+                    appendLog("Главное меню", "oper=$parsedOper, client=$parsedClient")
+
                     // Парсим JSON данные в список Item
                     val items = parser.parseDataToList(result.data)
                     totalItems += items.size
@@ -541,6 +664,8 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
             // Обновляем UI
             activity?.runOnUiThread {
                 updateInputStatusUI(0)
+                updateBDStatus(3)
+                updateOperInfo()
                 Toast.makeText(requireContext(),
                     "Загружено в БД: $totalItems записей из $successCount файлов",
                     Toast.LENGTH_LONG

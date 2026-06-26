@@ -263,6 +263,9 @@ class MainActivity : AppCompatActivity() {
                     appLic.appConnect1C = 2
                     appLic.appKONF = status.konf.toString()
                     saveState()
+
+                    // Синхронизация bd: если статус на сервере отличается от локального — отправляем локальный
+                    syncBdIfDifferent(deviceUuid!!, status.bd)
                 } else {
                     appendLog("MainActivity", "Сопряжение отсутствует — сброс и переход к сопряжению")
                     resetPairingState()
@@ -302,5 +305,30 @@ class MainActivity : AppCompatActivity() {
         editor.putInt(APP_PREF_CONNECT1C, appLic.appConnect1C).apply()
         editor.putString(APP_PREF_ОPER, appLic.appOper).apply()
         editor.putString(APP_PREF_CLIENT, appLic.appClient).apply()
+    }
+
+    /**
+     * Синхронизация bd: если статус на сервере отличается от локального — отправляем локальный.
+     * bd управляется только ТСД, поэтому локальное значение приоритетно.
+     */
+    private fun syncBdIfDifferent(deviceUuid: String, serverBd: Int) {
+        val bdLocal = appLic.appInfoBD.value ?: 0
+
+        if (bdLocal != serverBd) {
+            appendLog("MainActivity", "Синхронизация bd: локальный=$bdLocal, сервер=$serverBd")
+            CoroutineScope(IO).launch {
+                val api = ApiClient()
+                val result = api.sendPairingStatus(
+                    baseContext,
+                    deviceUuid,
+                    pairing = true,
+                    konf = appLic.appKONF.toIntOrNull() ?: 0,
+                    bd = bdLocal,
+                    input = 0,
+                    output = 0
+                )
+                appendLog("MainActivity", "Синхронизация bd: статус=${result.status}")
+            }
+        }
     }
 }

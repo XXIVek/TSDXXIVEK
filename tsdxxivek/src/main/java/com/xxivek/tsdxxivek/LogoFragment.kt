@@ -129,7 +129,7 @@ class LogoFragment : Fragment() {
                 binding.root.findNavController().navigate(R.id.action_logoFragment_to_self)
             }
         }
-        binding.bLogoExit.setOnClickListener{MainActivity().appExit()}
+        binding.bLogoExit.setOnClickListener{requireActivity().finish()}
         binding.buttonSite.setOnClickListener {
             val url = "http://ооо21век.рф/otraslevye-reshenija-xxi-vek/apk-tsd-1c/"
             val i = Intent(Intent.ACTION_VIEW)

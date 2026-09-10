@@ -10,6 +10,19 @@ import com.xxivek.tsdxxivek.dataDB.ItemRoomDatabase
  */
 class TSDXXIVekApplication: Application() {
     
+    companion object {
+        @Volatile
+        private var INSTANCE: TSDXXIVekApplication? = null
+
+        val instance: TSDXXIVekApplication?
+            get() = INSTANCE
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        INSTANCE = this
+    }
+
     // Singleton для глобального состояния приложения
     val appState = AppState()
     

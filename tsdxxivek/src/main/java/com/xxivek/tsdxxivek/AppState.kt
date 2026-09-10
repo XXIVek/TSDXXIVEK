@@ -20,9 +20,7 @@ class AppState {
     var appConnect1C: Int = 0
         private set
     var appOper: String = ""
-        private set
     var appClient: String = ""
-        private set
     
     // Настройки интерфейса
     var TOPIC: Int = 0
@@ -104,17 +102,15 @@ class AppState {
         headingHTTP = ""
     }
     
-    fun setAppOper(value: String) {
+    fun setAppOper(value: String, context: android.content.Context) {
         appOper = value
-        // Сохраняем в SharedPreferences
-        val prefs = TSDXXIVekApplication().getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
+        val prefs = context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
         prefs.edit().putString(AppConstants.APP_PREF_ОPER, value).apply()
     }
-    
-    fun setAppClient(value: String) {
+
+    fun setAppClient(value: String, context: android.content.Context) {
         appClient = value
-        // Сохраняем в SharedPreferences
-        val prefs = TSDXXIVekApplication().getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
+        val prefs = context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
         prefs.edit().putString(AppConstants.APP_PREF_CLIENT, value).apply()
     }
     fun setTOPIC(value: Int) { TOPIC = value }

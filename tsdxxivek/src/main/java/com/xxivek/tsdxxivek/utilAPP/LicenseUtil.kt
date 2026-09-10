@@ -7,7 +7,6 @@ import androidx.lifecycle.ViewModel
 import com.xxivek.tsdxxivek.LOGING
 import com.xxivek.tsdxxivek.appLic
 import com.xxivek.tsdxxivek.dataDB.UtilDB
-import com.xxivek.tsdxxivek.itemDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.launch

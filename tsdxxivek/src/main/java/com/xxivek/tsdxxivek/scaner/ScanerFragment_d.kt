@@ -685,7 +685,7 @@ class ScanerFragment_d : Fragment() {
             var mShtrih=result["shtrih"]!!
             var accept=result["accept"]!!
             if (accept=="1") {
-                tekItem = itemDatabase?.getItem2(mShtrih)
+                tekItem = TSDXXIVekApplication.instance?.database?.itemDao()?.getItem2(mShtrih)
             }
             withContext(Dispatchers.Main) {displayResult(tekItem,mShtrih,accept)}
         }

@@ -17,8 +17,8 @@ import com.xxivek.tsdxxivek.api.FileDownloadApi
 import com.xxivek.tsdxxivek.api.PendingFileItem
 import com.xxivek.tsdxxivek.api.DeviceStatusUpdate
 import com.xxivek.tsdxxivek.dataDB.UtilDB
+import com.xxivek.tsdxxivek.TSDXXIVekApplication
 import com.xxivek.tsdxxivek.databinding.FragmentMenuBinding
-import com.xxivek.tsdxxivek.serverHTTP.ServerSocketXXI
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.launch
@@ -47,22 +47,6 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
 
     // Скачанные файлы, готовые к загрузке в БД
     private var downloadedFiles: MutableList<File> = mutableListOf()
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        if (appLic.appConnect1C==2){
-            SERVERPORT= appLic.appPORT.toInt()
-            if (SERVERPORT!!>0){
-                appendLog("Сопряжение", "Запускаем сервер из главного меню")
-    //            appLic.appConnect1C=false
-                ServerSocketXXI().startServerClient()
-            }
-            // Подключаем базу данных с интерфейсом обработки данных
-            appendLog("Сопряжение", "Подключаем базу данных с интерфейсом обработки данных из главного меню")
-            itemDatabase=(activity?.application as TSDXXIVekApplication).database.itemDao()
-        }
-    }
-
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -95,7 +79,7 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
         binding.bDownload.setOnClickListener(
             Navigation.createNavigateOnClickListener(R.id.action_menuFragment_to_fileDownloadFragment)
         )
-        binding.bExit.setOnClickListener{MainActivity().appExit()}
+        binding.bExit.setOnClickListener{requireActivity().finish()}
 
         binding.bInput.setOnClickListener { onInput() }
         binding.bOutput.setOnClickListener{
@@ -103,8 +87,8 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
                 // Веб-режим: экспорт JSON + загрузка на сервер
                 exportToWebsite()
             } else {
-                // Локальный режим: старый XML-экспорт
-                UtilDB().writeXML()
+                // Локальный режим: очистка quantity для выгрузки
+                UtilDB().clearQuantity()
             }
         }
         binding.bClearCont.setOnClickListener{
@@ -467,8 +451,7 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
     fun onInputBD(){
         CoroutineScope(IO).launch{
             UtilDB().onDelAllTables()
-            UtilDB().readInputXML()
-            appendLog("Главное меню","Отправка исходящих даныых")
+            appendLog("Главное меню","База данных очищена")
         }
     }
 
@@ -495,7 +478,7 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
 
         CoroutineScope(IO).launch {
             // Проверяем что есть данные для выгрузки (в фоновом потоке)
-            val items = itemDatabase?.getItemNotEmpty2() ?: emptyList()
+            val items = TSDXXIVekApplication.instance?.database?.itemDao()?.getItemNotEmpty2() ?: emptyList()
             if (items.isEmpty()) {
                 activity?.runOnUiThread {
                     Toast.makeText(context, "Нет данных для выгрузки", Toast.LENGTH_SHORT).show()

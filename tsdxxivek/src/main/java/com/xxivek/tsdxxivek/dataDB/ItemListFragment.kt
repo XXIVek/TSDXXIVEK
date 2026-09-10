@@ -10,8 +10,8 @@ import androidx.navigation.Navigation
 import androidx.navigation.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.xxivek.tsdxxivek.R
+import com.xxivek.tsdxxivek.TSDXXIVekApplication
 import com.xxivek.tsdxxivek.databinding.FragmentItemListBinding
-import com.xxivek.tsdxxivek.itemDatabase
 import kotlinx.coroutines.launch
 
 /**
@@ -119,24 +119,27 @@ class ItemListFragment : Fragment() {
     }
 
     private fun observeNotes() {
+        val dao = TSDXXIVekApplication.instance?.database?.itemDao()
         lifecycleScope.launch {
-            itemDatabase?.getItems()?.collect {listItem ->
+            dao?.getItems()?.collect {listItem ->
                 submitListToFdapter(listItem)
             }
         }
     }
 
     private fun observeNotesNotempty() {
+        val dao = TSDXXIVekApplication.instance?.database?.itemDao()
         lifecycleScope.launch {
-            itemDatabase?.getItemNotEmpty()?.collect {listItem ->
+            dao?.getItemNotEmpty()?.collect {listItem ->
                 submitListToFdapter(listItem)
             }
         }
     }
 
     private fun observeNotesEmpty() {
+        val dao = TSDXXIVekApplication.instance?.database?.itemDao()
         lifecycleScope.launch {
-            itemDatabase?.getItemEmpty()?.collect {listItem ->
+            dao?.getItemEmpty()?.collect {listItem ->
                 submitListToFdapter(listItem)
             }
         }

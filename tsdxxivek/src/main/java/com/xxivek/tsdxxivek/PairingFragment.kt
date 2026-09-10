@@ -8,7 +8,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.navigation.findNavController
-import com.xxivek.tsdxxivek.serverHTTP.ServerSocketXXI
 import com.xxivek.tsdxxivek.databinding.FragmentPairingBinding
 import com.xxivek.tsdxxivek.utilAPP.LicenseUtil
 import com.xxivek.tsdxxivek.utilAPP.appendLog
@@ -20,18 +19,6 @@ class PairingFragment : Fragment() {
     // binding FragmentItemListBinding
     private var _binding: FragmentPairingBinding?=null
     val binding get() = _binding!!
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-         SERVERPORT= appLic.appPORT.toInt()
-        if (SERVERPORT!!>0){
-//            appLic.appConnect1C=false
-            ServerSocketXXI().startServerClient()
-        }
-        // Подключаем базу данных с интерфейсом обработки данных
-        appendLog("Сопряжение", "Подключаем базу данных с интерфейсом обработки данных")
-        itemDatabase=(activity?.application as TSDXXIVekApplication).database.itemDao()
-     }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,

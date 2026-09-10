@@ -11,9 +11,9 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
-import com.xxivek.tsdxxivek.api.ApiClient
 import com.xxivek.tsdxxivek.api.DeviceStatusResponse
-import com.xxivek.tsdxxivek.dataDB.ItemDao
+import com.xxivek.tsdxxivek.api.FileDownloadApi
+import com.xxivek.tsdxxivek.api.DeviceStatusUpdate
 import com.xxivek.tsdxxivek.databinding.ActivityMainBinding
 import com.xxivek.tsdxxivek.utilAPP.LicenseUtil
 import com.xxivek.tsdxxivek.utilAPP.appendLog
@@ -78,10 +78,6 @@ var connectionSocket:Socket?=null
 lateinit var msg_server:String
 lateinit var msg_client:String
 lateinit var headingHTTP:String
-
-// База данных
-// Интерфейс доступа к базе данных
-var itemDatabase: ItemDao?=null
 
 class MainActivity : AppCompatActivity() {
     //Позволяет отслеживать навигацию по экранам
@@ -249,8 +245,8 @@ class MainActivity : AppCompatActivity() {
         appendLog("MainActivity", "Проверка статуса устройства: uuid=$deviceUuid")
 
         CoroutineScope(IO).launch {
-            val apiClient = ApiClient()
-            val status = apiClient.getDeviceStatus(baseContext, deviceUuid)
+            val api = FileDownloadApi()
+            val status = api.getDeviceStatusSync(baseContext, deviceUuid)
 
             withContext(Main) {
                 if (status.httpCode == -1) {
@@ -317,15 +313,18 @@ class MainActivity : AppCompatActivity() {
         if (bdLocal != serverBd) {
             appendLog("MainActivity", "Синхронизация bd: локальный=$bdLocal, сервер=$serverBd")
             CoroutineScope(IO).launch {
-                val api = ApiClient()
-                val result = api.sendPairingStatus(
-                    baseContext,
-                    deviceUuid,
+                val api = FileDownloadApi()
+                val updatePayload = DeviceStatusUpdate(
                     pairing = true,
                     konf = appLic.appKONF.toIntOrNull() ?: 0,
                     bd = bdLocal,
                     input = 0,
                     output = 0
+                )
+                val result = api.updateDeviceStatusSync(
+                    baseContext,
+                    deviceUuid,
+                    updatePayload
                 )
                 appendLog("MainActivity", "Синхронизация bd: статус=${result.status}")
             }

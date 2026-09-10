@@ -39,6 +39,7 @@ import com.xxivek.tsdxxivek.dataDB.InventoryViewModel
 import com.xxivek.tsdxxivek.dataDB.InventoryViewModelFactory
 import com.xxivek.tsdxxivek.dataDB.Item
 import com.xxivek.tsdxxivek.databinding.FragmentScanerBinding
+import com.xxivek.tsdxxivek.QrPairingParser
 import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.IO
 import java.util.concurrent.Executors
@@ -210,6 +211,7 @@ class ScanerFragment : Fragment() {
          setupCamera()
 
     }
+
     private fun fManualinputSh(){
         manualInputSh=true
         binding.layoytBlank.visibility=View.GONE
@@ -239,7 +241,7 @@ class ScanerFragment : Fragment() {
         cameraSelector = CameraSelector.Builder().requireLensFacing(lensFacing).build()
 
         ViewModelProvider(
-            this, ViewModelProvider.AndroidViewModelFactory.getInstance(TSDXXIVekApplication())
+            this, ViewModelProvider.AndroidViewModelFactory.getInstance(requireActivity().application as android.app.Application)
         ).get(CameraXViewModel::class.java)
             .processCameraProvider
             .observe(viewLifecycleOwner) { provider: ProcessCameraProvider? -> cameraProvider = provider
@@ -315,11 +317,6 @@ class ScanerFragment : Fragment() {
             binding.layoutScanResultRab.visibility = View.GONE
             binding.layoutScanResultTest.visibility = View.GONE
         } else if (isNotActivated()) {
-            // Локальный режим, устройство не активировано — тестовый режим
-            binding.layoutScanResultTest.visibility = View.VISIBLE
-            binding.layoytBlank.visibility = View.GONE
-            binding.layoutScanResultRab.visibility = View.GONE
-        } else {
             binding.textBlank.text="Наведите камеру на штрихкод"
             binding.bManualinputSh.visibility=View.VISIBLE
             binding.layoytBlank.visibility=View.VISIBLE
@@ -581,21 +578,46 @@ class ScanerFragment : Fragment() {
                                 //cameraProvider?.shutdown()
                                 navControler.navigate(R.id.action_scanerFragment_to_pairingFragment)
                             } else if (mText.startsWith("PAIR:")) {
-                                val activationCode = mText.substringAfter("PAIR:").uppercase()
-                                if (isValidActivationCode(activationCode)) {
-                                    // Корректный код — показываем layout_activation с заполненным кодом
-                                    binding.textBlank.text = "QR-код активации найден"
-                                    binding.layoutActivation.visibility = View.VISIBLE
-                                    binding.bActivate.visibility = View.VISIBLE
-                                    binding.etActivationCode.hint = "XXXXXX"
-                                    binding.etActivationCode.setText(activationCode)
-                                    binding.bManualinputSh.visibility = View.GONE
-                                    binding.layoytBlank.visibility = View.VISIBLE
-                                    binding.layoutScanResultRab.visibility = View.GONE
-                                    binding.layoutScanResultTest.visibility = View.GONE
+                                // Парсим QR-код через QrPairingParser
+                                val parser = QrPairingParser()
+                                val result = parser.parse(mText)
+
+                                if (result.isValid()) {
+                                    if (result.useSocket && result.activationCode.isNotBlank()) {
+                                        // Socket/Сайт режим: двухэтапная активация
+                                        binding.textBlank.text = "Код активации найден, активирую..."
+                                        binding.layoutActivation.visibility = View.VISIBLE
+                                        binding.bActivate.visibility = View.GONE
+                                        binding.bManualinputSh.visibility = View.GONE
+                                        binding.layoytBlank.visibility = View.VISIBLE
+                                        binding.layoutScanResultRab.visibility = View.GONE
+                                        binding.layoutScanResultTest.visibility = View.GONE
+                                        // Автоматическая активация
+                                        activateDevice(result.activationCode)
+                                    } else if (result.useSocket) {
+                                        // Socket-режим: показываем поле для ручного ввода
+                                        val activationCode = mText.substringAfter("PAIR:").uppercase()
+                                        if (isValidActivationCode(activationCode)) {
+                                            binding.textBlank.text = "QR-код активации найден"
+                                            binding.layoutActivation.visibility = View.VISIBLE
+                                            binding.bActivate.visibility = View.VISIBLE
+                                            binding.etActivationCode.hint = "XXXXXX"
+                                            binding.etActivationCode.setText(activationCode)
+                                            binding.bManualinputSh.visibility = View.GONE
+                                            binding.layoytBlank.visibility = View.VISIBLE
+                                            binding.layoutScanResultRab.visibility = View.GONE
+                                            binding.layoutScanResultTest.visibility = View.GONE
+                                        } else {
+                                            binding.tvScannedData.text = "Неверный формат QR-кода\nОжидается PAIR:XXXXXX"
+                                            binding.layoutScanErr.visibility = View.VISIBLE
+                                            binding.layoytBlank.visibility = View.GONE
+                                        }
+                                    } else {
+                                        // Файловый режим: сопряжение через QR
+                                        pairingWithFileMode(requireContext(), result)
+                                    }
                                 } else {
-                                    // Неверный формат — ошибка
-                                    binding.tvScannedData.text = "Неверный формат QR-кода\nОжидается PAIR:XXXXXX"
+                                    binding.tvScannedData.text = "Неверный формат QR-кода"
                                     binding.layoutScanErr.visibility = View.VISIBLE
                                     binding.layoytBlank.visibility = View.GONE
                                 }
@@ -652,7 +674,7 @@ class ScanerFragment : Fragment() {
             var mShtrihTip=result["shtrihTip"]!!
             var accept=result["accept"]!!
             if (accept=="1") {
-                tekItem = itemDatabase?.getItem2(mShtrih)
+                tekItem = TSDXXIVekApplication.instance?.database?.itemDao()?.getItem2(mShtrih)
             }
             withContext(Dispatchers.Main) {displayResult(tekItem,mShtrih,mShtrihTip,accept)}
         }
@@ -811,6 +833,42 @@ class ScanerFragment : Fragment() {
                     binding.layoutScanErr.visibility = View.VISIBLE
                     binding.layoytBlank.visibility = View.GONE
                 }
+            }
+        }
+    }
+
+    /**
+     * Сопряжение в файловом режиме через QR-код.
+     * Парсит QR, сохраняет сопряжение, записывает dev_status.txt.
+     */
+    private fun pairingWithFileMode(context: Context, result: QrPairingParser.PairingResult) {
+        // Сохраняем сопряжение
+        QrPairingParser().savePairing(context, result)
+
+        // Обновляем appLic
+        appLic.appConnect1C = 3
+        appLic.appKONF = result.konf.toString()
+        appLic.appLIC = "1"
+
+        // Записываем dev_status.txt: True;{konf};{bd};0;0
+        val bd = appLic.appInfoBD.value ?: 0
+        val devStatus = DeviceStatus(
+            pairing = true,
+            konf = result.konf,
+            bd = bd,
+            input = 0,
+            output = 0
+        )
+
+        CoroutineScope(IO).launch {
+            val manager = FileExchangeManager(context)
+            manager.ensureExchangeDir()
+            manager.writeStatus(devStatus)
+
+            withContext(Dispatchers.Main) {
+                // Переход на главное меню
+                val navController = binding.root.findNavController()
+                navController.navigate(R.id.action_scanerFragment_to_menuFragment)
             }
         }
     }

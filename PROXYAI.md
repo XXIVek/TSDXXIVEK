@@ -325,15 +325,27 @@ PAIR:true;socket:true;konf:1;LOGGING:0;Port:8180;Lic:1
 
 ## 13. Текущий этап работы
 
-**Фаза:** Тестирование режима Socket / Сайт (appConnect1C=2)
-**Файл плана:** `Docs/Tests/TEST_PLAN_SOCKET_SITE.md`
-**Метод:** Последовательное тестирование всех тестов от TS-001 до TS-025
-**Текущий тест:** Все тесты выполнены
-**Выполнено:** TS-001 — TS-030 ✅ (все 30 тестов)
-**Статус:** Тестирование режима Socket/Сайт завершено, ошибок нет
-**Следующий этап:** Тестирование режима Local USB (appConnect1C=3)
+**Фаза:** Тестирование режима Local USB (appConnect1C=3)
 **Файл плана:** `Docs/Tests/TEST_PLAN_USB.md`
-**Исправлено:** `itemDatabase` → `TSDXXIVekApplication.instance?.database?.itemDao()` во всех фрагментах
+**Метод:** Последовательное тестирование всех тестов от TS-001 до TS-023
+**Текущий тест:** TS-001 — Сканирование QR-кода и вход в USB-режим
+**Выполнено:**
+- Тестирование Socket/Сайт: TS-001 — TS-030 ✅ (все 30 тестов, ошибок нет)
+- Исправление критического бага: `itemDatabase` (всегда null) → `TSDXXIVekApplication.instance?.database?.itemDao()`
+  - Исправлено 7 файлов: ItemListFragment, ItemListFragment1, ItemListFragment2, ScanerFragment, ScanerFragment_d, MenuFragment, LicenseUtil
+  - Удалена неиспользуемая переменная `itemDatabase` из MainActivity.kt
+- Коммит: `92f30b1`, push на GitHub выполнен
+
+### Критические паттерны проекта
+- **Доступ к БД:** всегда `TSDXXIVekApplication.instance?.database?.itemDao()` — НЕ использовать `itemDatabase`
+- **Singleton Application:** `TSDXXIVekApplication.instance` — НЕ создавать новый экземпляр
+- **Activity:** `requireActivity()` — НЕ создавать `MainActivity()`
+- **QR-форматы:**
+  - Socket/Сайт (appConnect1C=2): `PAIR:<activation_code>`
+  - USB (appConnect1C=3): `PAIR:true;socket:false;konf:1;LOGGING:0;`
+  - WIFI (appConnect1C=4): `PAIR:true;socket:true;konf:1;LOGGING:0;Port:8180;Lic:1;`
+- **Папка обмена USB:** `/storage/emulated/0/Download/TSD/`
+- **Файлы обмена:** `Input.json`, `Output.json`, `tsd_dev_status.txt` (SSV формат)
 
 ---
 

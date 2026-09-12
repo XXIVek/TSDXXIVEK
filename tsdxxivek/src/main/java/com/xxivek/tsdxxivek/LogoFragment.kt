@@ -145,6 +145,26 @@ class LogoFragment : Fragment() {
             binding.bLogoPairing .visibility=View.VISIBLE
         }
         binding.bLogoPairing.setOnClickListener {
+            // Удаляем файлы обмена при сбросе сопряжения
+            try {
+                val exchangeDir = java.io.File(com.xxivek.tsdxxivek.AppConstants.FILE_EXCHANGE_DIR)
+                if (exchangeDir.exists()) {
+                    val filesToDelete = listOf(
+                        com.xxivek.tsdxxivek.AppConstants.FILE_INPUT_JSON,
+                        com.xxivek.tsdxxivek.AppConstants.FILE_OUTPUT_JSON,
+                        com.xxivek.tsdxxivek.AppConstants.FILE_DEV_STATUS
+                    )
+                    for (fileName in filesToDelete) {
+                        val file = java.io.File(exchangeDir, fileName)
+                        if (file.exists()) {
+                            file.delete()
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.w("LogoFragment", "Ошибка удаления файлов обмена", e)
+            }
+
             val editor = prefs.edit()
             editor.putString(APP_PREF_LIC, "-1").apply()
             editor.putString(APP_PREF_PORT, "0").apply()

@@ -288,6 +288,26 @@ class MainActivity : AppCompatActivity() {
         appLic.appKONF = "Не определена"
         appLic.appOper = ""
         appLic.appClient = ""
+
+        // Удаляем файлы обмена при сбросе сопряжения
+        try {
+            val exchangeDir = java.io.File(AppConstants.FILE_EXCHANGE_DIR)
+            if (exchangeDir.exists()) {
+                val filesToDelete = listOf(
+                    AppConstants.FILE_INPUT_JSON,
+                    AppConstants.FILE_OUTPUT_JSON,
+                    AppConstants.FILE_DEV_STATUS
+                )
+                for (fileName in filesToDelete) {
+                    val file = java.io.File(exchangeDir, fileName)
+                    if (file.exists()) {
+                        file.delete()
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            appendLog("MainActivity", "Ошибка удаления файлов обмена")
+        }
     }
 
     /**

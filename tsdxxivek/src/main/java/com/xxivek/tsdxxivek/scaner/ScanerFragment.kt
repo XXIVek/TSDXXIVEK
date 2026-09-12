@@ -40,8 +40,10 @@ import com.xxivek.tsdxxivek.dataDB.InventoryViewModelFactory
 import com.xxivek.tsdxxivek.dataDB.Item
 import com.xxivek.tsdxxivek.databinding.FragmentScanerBinding
 import com.xxivek.tsdxxivek.QrPairingParser
+import com.xxivek.tsdxxivek.utilAPP.appendLog
 import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.IO
+import java.io.File
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
@@ -733,6 +735,18 @@ class ScanerFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         setupCamera()
+
+        // Проверяем только USB-режим (appConnect1C=3)
+        if (appLic.appConnect1C != 3) return
+
+        // После возврата из системной настройки проверяем разрешение
+        // и записываем статус если он был сохранён
+        if (pendingDevStatus != null && hasManageExternalStoragePermission()) {
+            val devStatus = pendingDevStatus!!
+            pendingDevStatus = null
+            Log.d(TAG, "onResume: USB-режим, разрешение дано, записываю статус")
+            writeStatusAndNavigate(requireContext(), devStatus)
+        }
     }
 
     companion object {
@@ -850,7 +864,15 @@ class ScanerFragment : Fragment() {
         appLic.appKONF = result.konf.toString()
         appLic.appLIC = "1"
 
-        // Записываем dev_status.txt: True;{konf};{bd};0;0
+        // Сохраняем appConnect1C в SharedPreferences
+        val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+        prefs.edit().apply {
+            putInt(AppConstants.APP_PREF_CONNECT1C, 3).apply()
+            putString(AppConstants.APP_PREF_LIC, "1").apply()
+            putString(AppConstants.APP_PREF_KONF, result.konf.toString()).apply()
+        }
+
+        // Записываем dev_status.txt: True;{konf};{bd};0;0;
         val bd = appLic.appInfoBD.value ?: 0
         val devStatus = DeviceStatus(
             pairing = true,
@@ -860,10 +882,75 @@ class ScanerFragment : Fragment() {
             output = 0
         )
 
+        // Запрашиваем разрешение MANAGE_EXTERNAL_STORAGE для USB-режима
+        if (hasManageExternalStoragePermission()) {
+            writeStatusAndNavigate(context, devStatus)
+        } else {
+            Log.d(TAG, "pairingWithFileMode: нет MANAGE_EXTERNAL_STORAGE, открываю настройку")
+            // Сохраняем devStatus в поле для восстановления после возврата из настроек
+            pendingDevStatus = devStatus
+            requestManageExternalStoragePermission()
+        }
+    }
+
+    /**
+     * Сохранённый статус для записи после предоставления разрешения.
+     */
+    private var pendingDevStatus: DeviceStatus? = null
+
+    /**
+     * Проверить наличие разрешения MANAGE_EXTERNAL_STORAGE.
+     */
+    private fun hasManageExternalStoragePermission(): Boolean {
+        return android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.R ||
+                android.os.Environment.isExternalStorageManager()
+    }
+
+    /**
+     * Запросить разрешение MANAGE_EXTERNAL_STORAGE.
+     * Открывает системную настройку, без callback.
+     */
+    private fun requestManageExternalStoragePermission() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            val intent = android.content.Intent(
+                android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION
+            ).apply {
+                data = android.net.Uri.fromParts("package", requireActivity().packageName, null)
+            }
+            startActivity(intent)
+        }
+    }
+
+    /**
+     * Записать статус и перейти в меню.
+     */
+    private fun writeStatusAndNavigate(context: Context, devStatus: DeviceStatus) {
         CoroutineScope(IO).launch {
-            val manager = FileExchangeManager(context)
-            manager.ensureExchangeDir()
-            manager.writeStatus(devStatus)
+            val manager = FileExchangeManager(context, usbMode = true)
+
+            // 1. Создаём папку обмена
+            val dirCreated = manager.ensureExchangeDir()
+            Log.d(TAG, "pairingWithFileMode: ensureExchangeDir=$dirCreated, dirExists=${manager.exchangeDir.exists()}, canWrite=${manager.exchangeDir.canWrite()}")
+
+            if (!dirCreated && !manager.exchangeDir.exists()) {
+                withContext(Dispatchers.Main) {
+                    binding.tvScannedData.text = "Не удалось создать папку обмена"
+                    binding.layoutScanErr.visibility = View.VISIBLE
+                    binding.layoytBlank.visibility = View.GONE
+                }
+                return@launch
+            }
+
+            // 2. Записываем статус
+            val writeResult = manager.writeStatus(devStatus)
+            Log.d(TAG, "pairingWithFileMode: writeStatus success=${writeResult.success}, msg=${writeResult.message}")
+
+            // 3. Проверяем, что файл реально создан
+            val statusFile = File(manager.exchangeDir, AppConstants.FILE_DEV_STATUS)
+            val fileExists = statusFile.exists()
+            val fileIsFile = statusFile.isFile
+            val fileContent = if (fileExists && fileIsFile) statusFile.readText().trim() else "N/A"
+            Log.d(TAG, "pairingWithFileMode: fileExists=$fileExists, isFile=$fileIsFile, content=$fileContent")
 
             withContext(Dispatchers.Main) {
                 // Переход на главное меню

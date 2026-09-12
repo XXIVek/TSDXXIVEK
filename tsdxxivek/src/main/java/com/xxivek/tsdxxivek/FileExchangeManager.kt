@@ -24,13 +24,16 @@ import java.util.concurrent.Executors
  * Работает через папку /storage/emulated/0/Download/TSD/
  * Файлы: tsd_dev_status.txt, tsd_Input.json, tsd_Output.json
  */
-class FileExchangeManager(private val context: Context) {
+class FileExchangeManager(
+    private val context: Context,
+    private val usbMode: Boolean = false
+) {
 
     companion object {
         private const val TAG = "FileExchangeManager"
     }
 
-    private val exchangeDir = File(AppConstants.FILE_EXCHANGE_DIR)
+    val exchangeDir = File(AppConstants.FILE_EXCHANGE_DIR)
     private val gson = Gson()
     private val executor = Executors.newSingleThreadExecutor()
 
@@ -50,6 +53,20 @@ class FileExchangeManager(private val context: Context) {
     // Текущие oper и client (из настроек)
     var appOper: String = ""
     var appClient: String = ""
+
+    /**
+     * Получить konf из SharedPreferences (только для USB-режима).
+     * Если не найден — возвращает текущий konf из currentStatus.
+     */
+    private fun getKonfFromPrefs(): Int {
+        if (!usbMode) return currentStatus.konf
+        return try {
+            val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+            prefs.getString(AppConstants.APP_PREF_KONF, null)?.toIntOrNull() ?: currentStatus.konf
+        } catch (e: Exception) {
+            currentStatus.konf
+        }
+    }
 
     /**
      * Проверить и создать папку обмена.
@@ -102,10 +119,21 @@ class FileExchangeManager(private val context: Context) {
             val ssv = statusFile.readText().trim()
             val status = DeviceStatus.fromSsv(ssv)
             if (status != null) {
-                currentStatus = status
-                Log.d(TAG, "Статус прочитан: pairing=${status.pairing}, konf=${status.konf}, bd=${status.bd}, input=${status.input}, output=${status.output}")
+                // Для USB-режима игнорируем pairing и konf из файла
+                val finalStatus = if (usbMode) {
+                    status.copy(
+                        pairing = true,
+                        konf = getKonfFromPrefs()
+                    )
+                } else {
+                    status
+                }
+                currentStatus = finalStatus
+                Log.d(TAG, "Статус прочитан: pairing=${finalStatus.pairing}, konf=${finalStatus.konf}, bd=${finalStatus.bd}, input=${finalStatus.input}, output=${finalStatus.output}")
+                finalStatus
+            } else {
+                null
             }
-            status
         } catch (e: Exception) {
             Log.e(TAG, "Ошибка чтения статуса", e)
             null
@@ -132,7 +160,16 @@ class FileExchangeManager(private val context: Context) {
         }
 
         return try {
-            val ssv = DeviceStatus.toSsv(status)
+            // Для USB-режима игнорируем pairing и konf из status
+            val finalStatus = if (usbMode) {
+                status.copy(
+                    pairing = true,
+                    konf = getKonfFromPrefs()
+                )
+            } else {
+                status
+            }
+            val ssv = DeviceStatus.toSsv(finalStatus)
             Log.d(TAG, "writeStatus: writing SSV=$ssv")
             
             // Проверяем содержимое папки
@@ -157,7 +194,7 @@ class FileExchangeManager(private val context: Context) {
             statusFile.writeText(ssv)
             
             Log.d(TAG, "writeStatus: writeText OK, fileExists=${statusFile.exists()}, length=${statusFile.length()}")
-            currentStatus = status
+            currentStatus = finalStatus
             Log.d(TAG, "Статус записан: $ssv, bytes=${ssv.length}")
             appendLog("FileExchangeManager", "Статус записан: $ssv")
             FileExchangeResult(true, "Статус записан")
@@ -463,6 +500,14 @@ class FileExchangeManager(private val context: Context) {
      */
     fun hasPendingInput(): Boolean {
         return currentStatus.input == 3
+    }
+
+    /**
+     * Установить текущий статус (для восстановления при запуске).
+     */
+    fun updateStatus(status: DeviceStatus) {
+        currentStatus = status
+        Log.d(TAG, "updateStatus: pairing=${status.pairing}, konf=${status.konf}, bd=${status.bd}")
     }
 
     /**

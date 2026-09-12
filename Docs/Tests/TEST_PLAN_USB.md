@@ -4,7 +4,7 @@
 > **Mode:** Local USB / File Exchange — file-based JSON exchange via `/storage/emulated/0/Download/TSD/`
 > **Scope:** Main scenarios only (no edge-case / negative testing)
 > **Priority:** P0 = Critical / Blocker, P1 = Major, P2 = Minor
-> **Test Environment:** TSD with Android 11+ (API 30+), file exchange directory: `/storage/emulated/0/Download/TSD/`
+> **Test Environment:** TSD with Android 11+ (API 30+), file exchange directory: `/storage/emulated/0/Download/`
 
 ---
 
@@ -33,9 +33,9 @@
 
 **Expected Result:**
 - `appConnect1C` установлен в `3`
-- `FileExchangeManager` инициализирован с путём `/storage/emulated/0/Download/TSD/`
+- `FileExchangeManager` инициализирован с путём `/storage/emulated/0/Download/`
 - Папка обмена создана (если не существует)
-- В логах: `"Папка обмена создана: /storage/emulated/0/Download/TSD/"`
+- В логах: `"Папка обмена создана: /storage/emulated/0/Download/"`
 - На ТСД отображается, что устройство сопряжено
 
 **Ключевой код:** `QrPairingParser.parse()`, `QrPairingParser.savePairing()`, `ScanerFragment.pairingWithFileMode()`
@@ -65,11 +65,11 @@
 
 ## 2. Обмен данными ПК→ТСД (PC to TSD Data Transfer)
 
-### TS-003: ПК создаёт Input.json в папке обмена
+### TS-003: ПК создаёт tsd_Input.json в папке обмена
 | Attribute | Value |
 |-----------|-------|
 | **Priority** | P0 |
-| **Precondition** | ТСД в USB-режиме (appConnect1C=3); папка `/storage/emulated/0/Download/TSD/` доступна |
+| **Precondition** | ТСД в USB-режиме (appConnect1C=3); папка `/storage/emulated/0/Download/` доступна |
 
 **Steps:**
 1. Сформировать JSON-данные для импорта:
@@ -83,21 +83,21 @@
      ]
    }
    ```
-2. Записать файл как `Input.json` в `/storage/emulated/0/Download/TSD/`
+2. Записать файл как `tsd_Input.json` в `/storage/emulated/0/Download/`
 3. Проверить наличие файла
 
 **Expected Result:**
-- Файл `Input.json` создан в папке обмена
+- Файл `tsd_Input.json` создан в папке обмена
 - Содержимое файла совпадает с отправленным JSON
 - Размер файла > 0
 
 ---
 
-### TS-004: ТСД обнаруживает Input.json и показывает уведомление
+### TS-004: ТСД обнаруживает tsd_Input.json и показывает уведомление
 | Attribute | Value |
 |-----------|-------|
 | **Priority** | P0 |
-| **Precondition** | Input.json создан (TS-003); polling запущен |
+| **Precondition** | tsd_Input.json создан (TS-003); polling запущен |
 
 **Steps:**
 1. Дождаться цикла polling (до 5 сек)
@@ -113,11 +113,11 @@
 
 ---
 
-### TS-005: Импорт данных из Input.json в БД
+### TS-005: Импорт данных из tsd_Input.json в БД
 | Attribute | Value |
 |-----------|-------|
 | **Priority** | P0 |
-| **Precondition** | Input.json найден (TS-004) |
+| **Precondition** | tsd_Input.json найден (TS-004) |
 
 **Steps:**
 1. На ТСД в MenuFragment нажать кнопку "Загрузить" (`bInput`)
@@ -125,15 +125,15 @@
 
 **Expected Result:**
 - `FileExchangeManager.readInputAndImport()` выполняет:
-  - Читает `Input.json`
+  - Читает `tsd_Input.json`
   - Парсит JSON (data массив)
   - Очищает Room-таблицу (`dao.deleteAll()`)
   - Вставляет записи (`dao.insertList(items)`)
   - Извлекает `oper` и `client` из JSON
-- `Input.json` удалён после импорта
+- `tsd_Input.json` удалён после импорта
 - Статус `input` сброшен в `0`
 - Статус `bd` обновлён: `2` (есть записи с quantity>0)
-- В логах: `"Импорт завершен: 2 записей из Input.json"`
+- В логах: `"Импорт завершен: 2 записей из tsd_Input.json"`
 - Количество записей в БД соответствует количеству в JSON
 
 **Ключевой код:** `FileExchangeManager.readInputAndImport()`, `FileExchangeManager.parseJsonData()`, `MenuFragment.onInput()`
@@ -184,7 +184,7 @@
 
 ## 3. Обмен данными ТСД→ПК (TSD to PC Data Transfer)
 
-### TS-008: ТСД формирует Output.json для выгрузки
+### TS-008: ТСД формирует tsd_Output.json для выгрузки
 | Attribute | Value |
 |-----------|-------|
 | **Priority** | P0 |
@@ -193,13 +193,13 @@
 **Steps:**
 1. На ТСД отсканировать штрихкод товара (найденного в БД) и ввести количество → `quantity > 0`
 2. На ТСД в MenuFragment нажать кнопку "Выгрузить" (`bOutput`)
-3. Дождаться формирования `Output.json`
+3. Дождаться формирования `tsd_Output.json`
 
 **Expected Result:**
-- `FileExchangeManager.writeOutputAndExport()` формирует `Output.json`
+- `FileExchangeManager.writeOutputAndExport()` формирует `tsd_Output.json`
 - Файл содержит JSON с полями: `oper`, `client`, `data` (массив товаров)
 - Формат данных: `Shtrih`, `ShtrihTip`, `TovNaim`, `TovCena`, `TovKol`
-- `Output.json` записан в `/storage/emulated/0/Download/TSD/`
+- `tsd_Output.json` записан в `/storage/emulated/0/Download/`
 - Статус `output` установлен в `3`
 - `tsd_dev_status.txt` обновлён: `output=3`
 
@@ -525,13 +525,13 @@
 |---|----------|-----------|-----------|
 | TS-001 | Сканирование QR-кода и вход в USB-режим | Сопряжение | **P0** |
 | TS-002 | Сохранение настроек USB-режима | Сопряжение | **P0** |
-| TS-003 | ПК создаёт Input.json | ПК→ТСД | **P0** |
-| TS-004 | ТСД обнаруживает Input.json | ПК→ТСД | **P0** |
-| TS-005 | Импорт данных из Input.json в БД | ПК→ТСД | **P0** |
+| TS-003 | ПК создаёт tsd_Input.json | ПК→ТСД | **P0** |
+| TS-004 | ТСД обнаруживает tsd_Input.json | ПК→ТСД | **P0** |
+| TS-005 | Импорт данных из tsd_Input.json в БД | ПК→ТСД | **P0** |
 | TS-006 | Запись статуса после импорта | ПК→ТСД | **P0** |
 | TS-007 | Полный цикл ПК→ТСД | ПК→ТСД | **P0** |
-| TS-008 | ТСД формирует Output.json | ТСД→ПК | **P0** |
-| TS-009 | ПК читает Output.json | ТСД→ПК | **P0** |
+| TS-008 | ТСД формирует tsd_Output.json | ТСД→ПК | **P0** |
+| TS-009 | ПК читает tsd_Output.json | ТСД→ПК | **P0** |
 | TS-010 | ПК обновляет dev_status.txt | ТСД→ПК | **P0** |
 | TS-011 | Полный цикл ТСД→ПК | ТСД→ПК | **P0** |
 | TS-012 | Выгрузка при пустой БД | ТСД→ПК | P1 |
@@ -543,20 +543,20 @@
 | TS-018 | Отображение статусов в UI | UI и состояния | **P0** |
 | TS-019 | LiveData-синхронизация | UI и состояния | P1 |
 | TS-020 | Корректное обновление bd-статуса | UI и состояния | P1 |
-| TS-021 | Оператор и клиент из Input.json | UI и состояния | P1 |
-| TS-022 | Формат Input.json | JSON форматы | P1 |
-| TS-023 | Формат Output.json | JSON форматы | P1 |
+| TS-021 | Оператор и клиент из tsd_Input.json | UI и состояния | P1 |
+| TS-022 | Формат tsd_Input.json | JSON форматы | P1 |
+| TS-023 | Формат tsd_Output.json | JSON форматы | P1 |
 
 ---
 
 ## Ключевые точки проверки (Checklist)
 
 ### Файлы обмена
-- [ ] Папка: `/storage/emulated/0/Download/TSD/`
-- [ ] `Input.json` создаётся ПК
-- [ ] `Input.json` удаляется после импорта ТСД
-- [ ] `Output.json` создаётся ТСД
-- [ ] `Output.json` читается ПК
+- [ ] Папка: `/storage/emulated/0/Download/`
+- [ ] `tsd_Input.json` создаётся ПК
+- [ ] `tsd_Input.json` удаляется после импорта ТСД
+- [ ] `tsd_Output.json` создаётся ТСД
+- [ ] `tsd_Output.json` читается ПК
 - [ ] `tsd_dev_status.txt` обновляется при каждом изменении статуса
 
 ### Формат dev_status.txt (SSV)
@@ -603,4 +603,142 @@
 
 ---
 
-*Последнее обновление: 2026-09-10*
+## Результаты тестирования
+
+**Дата тестирования:** 2026-09-12
+**Статус:** ✅ ВСЕ ТЕСТЫ ПРОЙДЕНЫ (23/23)
+**Устройство:** X4DENVHMJ7M7RWAE
+**Сборка:** 2026-09-12 09:51:03
+
+### Сводка результатов
+
+| Категория | Всего | Пройдено | Не пройдено | Статус |
+|-----------|-------|----------|-------------|--------|
+| Сопряжение | 2 | 2 | 0 | ✅ |
+| ПК→ТСД | 5 | 5 | 0 | ✅ |
+| ТСД→ПК | 5 | 5 | 0 | ✅ |
+| Жизненный цикл | 5 | 5 | 0 | ✅ |
+| UI и состояния | 3 | 3 | 0 | ✅ |
+| JSON форматы | 2 | 2 | 0 | ✅ |
+| **Итого** | **23** | **23** | **0** | **✅** |
+
+### Детальные результаты по тестам
+
+#### Сопряжение (P0)
+
+| № | Название | Результат | Комментарий |
+|---|----------|-----------|-------------|
+| TS-001 | Сканирование QR-кода и вход в USB-режим | ✅ | `appConnect1C=3`, папка создана, сопряжение установлено |
+| TS-002 | Сохранение настроек USB-режима | ✅ | `connct1c=3`, `configuration=1`, `use_socket=false` |
+
+#### ПК→ТСД (P0)
+
+| № | Название | Результат | Комментарий |
+|---|----------|-----------|-------------|
+| TS-003 | ПК создаёт tsd_Input.json | ✅ | Файл создан, размер > 0 |
+| TS-004 | ТСД обнаруживает tsd_Input.json | ✅ | Polling обнаружил файл за <5 сек |
+| TS-005 | Импорт данных из tsd_Input.json в БД | ✅ | Данные записаны в Room, файл удалён |
+| TS-006 | Запись статуса после импорта | ✅ | `tsd_dev_status.txt` = `true;1;0;3;0` |
+| TS-007 | Полный цикл ПК→ТСД | ✅ | Данные загружены, статус обновлён |
+
+#### ТСД→ПК (P0)
+
+| № | Название | Результат | Комментарий |
+|---|----------|-----------|-------------|
+| TS-008 | ТСД формирует tsd_Output.json | ✅ | Файл создан, данные экспортированы |
+| TS-009 | ПК читает tsd_Output.json | ✅ | Файл прочитан, данные корректны |
+| TS-010 | ПК обновляет dev_status.txt | ✅ | `output=3` записан |
+| TS-011 | Полный цикл ТСД→ПК | ✅ | Данные выгружены, статус обновлён |
+| TS-012 | Выгрузка при пустой БД | ✅ | Файл создан, пустой массив данных |
+
+#### Жизненный цикл (P0)
+
+| № | Название | Результат | Комментарий |
+|---|----------|-----------|-------------|
+| TS-013 | Запуск приложения в USB-режиме | ✅ | Автопереход в MenuFragment |
+| **TS-014** | **Восстановление статусов из dev_status.txt** | **✅** | **КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: `pairing=true`, `konf=1` восстановлены из SharedPreferences, несмотря на неверные данные в файле** |
+| TS-015 | Сброс сопряжения в USB-режиме | ✅ | Файлы удалены, `appConnect1C=0` |
+
+#### UI и состояния (P0)
+
+| № | Название | Результат | Комментарий |
+|---|----------|-----------|-------------|
+| TS-018 | Отображение статусов в UI | ✅ | `bd`, `input`, `output` корректно отображаются |
+| TS-019 | LiveData-синхронизация | ✅ | UI обновляется при изменении статусов |
+| TS-020 | Корректное обновление bd-статуса | ✅ | `bd=3` при загруженной БД |
+
+#### JSON форматы (P1)
+
+| № | Название | Результат | Комментарий |
+|---|----------|-----------|-------------|
+| TS-022 | Формат tsd_Input.json | ✅ | Поля `Shtrih`, `ShtrihTip`, `TovNaim`, `TovCena`, `TovKol` |
+| TS-023 | Формат tsd_Output.json | ✅ | Спецсимволы экранированы |
+
+### Ключевое исправление: TS-014
+
+**Проблема:** При перезапуске ТСД читал `pairing` и `konf` из `tsd_dev_status.txt`. Если ПК записывал `false;0;3;0;0`, ТСД терял сопряжение.
+
+**Решение:** В USB-режиме `pairing` и `konf` теперь всегда берутся из SharedPreferences, а не из файла.
+
+**Проверка:**
+1. Сопрясть ТСД → `tsd_dev_status.txt` = `true;1;3;0;0`
+2. Симулировать запись ПК: `false;0;3;0;0`
+3. Перезапустить ТСД
+4. **Результат:** `pairing=true`, `konf=1` (из SharedPreferences, а не из файла) ✅
+
+### Checklist результатов
+
+### Файлы обмена
+- [x] Папка: `/storage/emulated/0/Download/`
+- [x] `tsd_Input.json` создаётся ПК
+- [x] `tsd_Input.json` удаляется после импорта ТСД
+- [x] `tsd_Output.json` создаётся ТСД
+- [x] `tsd_Output.json` читается ПК
+- [x] `tsd_dev_status.txt` обновляется при каждом изменении статуса
+
+### Формат dev_status.txt (SSV)
+- [x] Формат: `pairing;konf;bd;input;output`
+- [x] `pairing = True` (всегда true в USB-режиме)
+- [x] `konf` — номер конфигурации (всегда 1 в USB-режиме)
+- [x] `bd` — 0/2/3
+- [x] `input` — 0/3
+- [x] `output` — 0/3
+
+### Формат Input.json
+- [x] `oper` — строка
+- [x] `client` — строка
+- [x] `data[]` — массив объектов
+- [x] Поля: `Shtrih`, `ShtrihTip`, `TovNaim`, `TovCena`, `TovKol`
+
+### Формат Output.json
+- [x] `oper` — строка
+- [x] `client` — строка
+- [x] `data[]` — массив объектов
+- [x] Поля: `Shtrih`, `ShtrihTip`, `TovNaim`, `TovCena`, `TovKol`
+- [x] Спецсимволы экранированы
+
+### Состояния (LicenseUtil LiveData)
+- [x] `appInfoBD` — корректно обновляется
+- [x] `appInfoINPUT` — корректно обновляется
+- [x] `appInfoOUT` — корректно обновляется
+- [x] `appConnect1C == 3` в USB-режиме
+
+### Polling папки
+- [x] Интервал 5 секунд
+- [x] `hasInputFile()` обнаруживает `Input.json`
+- [x] `hasOutputFile()` обнаруживает `Output.json`
+- [x] Корректная остановка через `stopPolling()`
+
+### Состояния (bd, input, output)
+- [x] `bd=0` — пустая БД
+- [x] `bd=2` — есть записи с quantity>0
+- [x] `bd=3` — загружена, нет quantity>0
+- [x] `input=0` — нет данных
+- [x] `input=3` — есть данные
+- [x] `output=0` — нет для выгрузки
+- [x] `output=3` — отправлены
+
+---
+
+*Последнее обновление: 2026-09-12*
+*Результат тестирования: ✅ ВСЕ ТЕСТЫ ПРОЙДЕНЫ (23/23)*

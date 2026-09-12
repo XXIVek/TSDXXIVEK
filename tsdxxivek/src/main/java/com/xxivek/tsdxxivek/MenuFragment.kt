@@ -65,6 +65,11 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
 
         appState = (requireActivity().application as TSDXXIVekApplication).appState
 
+        // USB-режим: обновить статусы из БД и файлов при входе на главный экран
+        if (appLic.appConnect1C == 3) {
+            refreshStatusFromFiles()
+        }
+
         if (DESIGN == 0) {
            binding.bScaner.setOnClickListener (
                 Navigation.createNavigateOnClickListener(R.id.action_menuFragment_to_scanerFragment))
@@ -76,9 +81,6 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
         binding.bSettings.setOnClickListener(
             Navigation.createNavigateOnClickListener(R.id.action_menuFragment_to_settingsFragment)
         )
-        binding.bDownload.setOnClickListener(
-            Navigation.createNavigateOnClickListener(R.id.action_menuFragment_to_fileDownloadFragment)
-        )
         binding.bExit.setOnClickListener{requireActivity().finish()}
 
         binding.bInput.setOnClickListener { onInput() }
@@ -86,6 +88,9 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
             if (appLic.appConnect1C == 2) {
                 // Веб-режим: экспорт JSON + загрузка на сервер
                 exportToWebsite()
+            } else if (appLic.appConnect1C == 3) {
+                // USB-режим: экспорт в Output.json
+                exportToUSB()
             } else {
                 // Локальный режим: очистка quantity для выгрузки
                 UtilDB().clearQuantity()
@@ -95,6 +100,12 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
             UtilDB().clearQuantity()
             if (appLic.appConnect1C == 2) {
                 // Веб-режим: после очистки quantity -> bd=3
+                appLic.appInfoBD.postValue(3)
+            } else {
+                // USB-режим: обновить статус в файле
+                val fileExchangeManager = FileExchangeManager(requireContext(), usbMode = true)
+                val status = fileExchangeManager.getStatus()
+                fileExchangeManager.writeStatus(status.copy(bd = 3))
                 appLic.appInfoBD.postValue(3)
             }
         }
@@ -293,20 +304,117 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
     }
 
     /**
+     * Обновить статусы ТСД из БД и файлов при входе на главный экран.
+     * Работает только для USB-режима (appConnect1C == 3).
+     * Проверяет: БД (bd), Input.json (input), Output.json (output).
+     * Записывает актуальный статус в tsd_dev_status.txt.
+     */
+    private fun refreshStatusFromFiles() {
+        val context = requireContext()
+        val manager = FileExchangeManager(context, usbMode = true)
+
+        CoroutineScope(IO).launch {
+            // 1. Проверяем БД
+            val app = context.applicationContext as? com.xxivek.tsdxxivek.TSDXXIVekApplication
+            val dao = app?.database?.itemDao()
+            val total = dao?.getCount() ?: 0
+            val notEmpty = dao?.getCountNotEmpty() ?: 0
+            val bd = if (notEmpty > 0) 2 else if (total > 0) 3 else 0
+
+            // 2. Проверяем Input.json
+            val input = if (manager.hasInputFile()) 3 else 0
+
+            // 3. Проверяем Output.json
+            val output = if (manager.hasOutputFile()) 3 else 0
+
+            // 4. Обновляем LiveData для UI
+            appLic.appInfoBD.postValue(bd)
+            appLic.appInfoINPUT.postValue(input)
+            appLic.appInfoOUT.postValue(output)
+
+            // 5. Записываем статус в tsd_dev_status.txt
+            val konf = appLic.appKONF.toIntOrNull() ?: 1
+            val devStatus = DeviceStatus(
+                pairing = true,
+                konf = konf,
+                bd = bd,
+                input = input,
+                output = output
+            )
+            val writeResult = manager.writeStatus(devStatus)
+            // Обновляем currentStatus в FileExchangeManager
+            manager.updateStatus(devStatus)
+            appendLog("Главное меню", "refreshStatusFromFiles: bd=$bd, input=$input, output=$output, write=$writeResult")
+        }
+    }
+
+    /**
      * Запустить polling статуса устройства.
      */
     private fun startStatusPolling() {
-        // Проверяем что используется веб-режим
-        val prefs = requireContext().getSharedPreferences("settings", Context.MODE_PRIVATE)
-        val useSite = prefs.getBoolean("use_website", false)
+        // Локальный режим (USB/WIFI) — файловый polling
+        val useSite = requireContext().getSharedPreferences("settings", Context.MODE_PRIVATE)
+            .getBoolean("use_website", false)
 
         if (!useSite) {
-            appendLog("Главное меню", "Polling не запущен: используется локальный режим")
+            // USB-режим: файловый polling
+            val isUsbMode = appLic.appConnect1C == 3
+            val fileExchangeManager = FileExchangeManager(requireContext(), usbMode = isUsbMode)
+            // Восстанавливаем статус из файла (pairing, konf)
+            // readStatus() уже обновляет currentStatus внутри себя
+            if (isUsbMode) {
+                // Для USB-режима принудительно устанавливаем pairing=true
+                val existingStatus = fileExchangeManager.readStatus()
+                val konf = if (existingStatus != null) {
+                    // Если USB-режим — принудительно устанавливаем pairing=true
+                    val restored = existingStatus.copy(
+                        pairing = true,
+                        konf = if (existingStatus.konf > 0) existingStatus.konf else appLic.appKONF.toIntOrNull() ?: 1
+                    )
+                    restored.konf
+                } else {
+                    appLic.appKONF.toIntOrNull() ?: 1
+                }
+                fileExchangeManager.updateStatus(
+                    DeviceStatus(true, konf, 0, 0, 0)
+                )
+            }
+            fileExchangeManager.onStatusChanged = { status ->
+                activity?.runOnUiThread {
+                    if (_binding != null) {
+                        updateBDStatus(status.bd)
+                        updateInputStatusUI(status.input)
+                        updateOutputStatusUI(status.output)
+                    }
+                }
+            }
+            fileExchangeManager.onInputFileReady = {
+                activity?.runOnUiThread {
+                    if (_binding != null) {
+                        updateInputStatusUI(3)
+                        Toast.makeText(requireContext(),
+                            "Загрузка: Данные доступны. Нажмите 'Загрузить'",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            }
+            fileExchangeManager.onOutputFileReady = {
+                activity?.runOnUiThread {
+                    if (_binding != null) {
+                        updateOutputStatusUI(3)
+                    }
+                }
+            }
+            fileExchangeManager.startPolling()
+            appendLog("Главное меню", "Polling запущен (файловый, 5 сек)")
             return
         }
 
+        // Веб-режим: HTTP polling
         // Проверяем что устройство активировано
-        val token = prefs.getString(AppConstants.APP_PREF_DEVICE_UUID, null)
+        val token = requireContext().getSharedPreferences("settings", Context.MODE_PRIVATE)
+            .getString(AppConstants.APP_PREF_DEVICE_UUID, null)
         if (token.isNullOrEmpty()) {
             appendLog("Главное меню", "Polling не запущен: нет device_uuid")
             return
@@ -412,6 +520,35 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
             return
         }
 
+        // USB-режим: чтение Input.json напрямую
+        if (appLic.appConnect1C == 3) {
+            val manager = FileExchangeManager(context, usbMode = true)
+            // readStatus() уже обновляет currentStatus с pairing=true и konf из SharedPreferences
+            manager.readStatus()
+            if (manager.hasInputFile()) {
+                appendLog("Главное меню", "onInput: USB-режим, Input.json найден, начинаем импорт")
+                CoroutineScope(IO).launch {
+                    val result = manager.readInputAndImport()
+                    activity?.runOnUiThread {
+                        if (result.success) {
+                            updateInputStatusUI(0)
+                            appLic.conditionInfo()
+                            Toast.makeText(context, result.message, Toast.LENGTH_LONG).show()
+                            appendLog("Главное меню", "Импорт USB успешен: ${result.message}")
+                        } else {
+                            updateInputStatusUI(1)
+                            Toast.makeText(context, "Ошибка импорта: ${result.message}", Toast.LENGTH_LONG).show()
+                            appendLog("Главное меню", "Импорт USB не удался: ${result.message}")
+                        }
+                    }
+                }
+            } else {
+                appendLog("Главное меню", "onInput: USB-режим, Input.json не найден")
+                Toast.makeText(context, "Нет данных для загрузки", Toast.LENGTH_SHORT).show()
+            }
+            return
+        }
+
         // Локальный режим: старый сценарий
         val builderAD = AlertDialog.Builder(binding.root.context)
         builderAD.setTitle("Операции с БД")
@@ -452,6 +589,42 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
         CoroutineScope(IO).launch{
             UtilDB().onDelAllTables()
             appendLog("Главное меню","База данных очищена")
+        }
+    }
+
+    // ----------------------------------------------------------------
+    // Выгрузка данных в файл (USB-режим)
+    // ----------------------------------------------------------------
+
+    /**
+     * Экспорт данных из БД в Output.json для USB-режима.
+     */
+    private fun exportToUSB() {
+        val context = requireContext()
+
+        appendLog("Главное меню", "exportToUSB: начало")
+
+        CoroutineScope(IO).launch {
+            val manager = FileExchangeManager(context, usbMode = true)
+            val result = manager.writeOutputAndExport()
+
+            activity?.runOnUiThread {
+                if (result.success) {
+                    updateOutputStatusUI(3)
+                    Toast.makeText(context,
+                        "Данные выгружены: ${result.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    appendLog("Главное меню", "Выгрузка USB успешна: ${result.message}")
+                } else {
+                    updateOutputStatusUI(1)
+                    Toast.makeText(context,
+                        "Ошибка выгрузки: ${result.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    appendLog("Главное меню", "Выгрузка USB не удалась: ${result.message}")
+                }
+            }
         }
     }
 

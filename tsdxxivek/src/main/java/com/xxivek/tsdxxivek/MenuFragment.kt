@@ -342,9 +342,11 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
         }
 
         // Синхронно обновляем LiveData
+        appendLog("Главное меню", "updateStatusesSync: BEFORE bd=${appLic.appInfoBD.value}, setting bd=$bd")
         appLic.appInfoBD.value = bd
         appLic.appInfoINPUT.value = input
         appLic.appInfoOUT.value = output
+        appendLog("Главное меню", "updateStatusesSync: AFTER bd=${appLic.appInfoBD.value}")
         
         appendLog("Главное меню", "updateStatusesSync: bd=$bd, input=$input, output=$output, total=$total, notEmpty=$notEmpty")
     }
@@ -532,6 +534,7 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
         // Подписываемся на состояние БД
         val infoBDliveDataObserver = Observer<Int>() { bdStatus ->
             appState.appBd = bdStatus
+            appendLog("Главное меню", "Observer BD: получен bdStatus=$bdStatus")
             updateBDStatus(bdStatus)
             // output=2 не определён в протоколе — не показываем
             if (mInfoOutput == 0) {
@@ -904,6 +907,10 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
 
     override fun onResume() {
         super.onResume()
+        // Обновляем статусы при каждом возврате на экран
+        if (_binding != null && appLic.appConnect1C > 0) {
+            updateStatusesSync()
+        }
         // Запускаем polling при возврате на экран
         if (pollingService == null || !pollingService!!.isPollingRunning()) {
             startStatusPolling()

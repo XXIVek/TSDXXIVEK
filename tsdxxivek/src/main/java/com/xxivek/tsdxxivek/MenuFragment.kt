@@ -22,6 +22,7 @@ import com.xxivek.tsdxxivek.databinding.FragmentMenuBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import com.xxivek.tsdxxivek.utilAPP.appendLog
 import android.widget.Toast
 import java.io.File
@@ -325,8 +326,10 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
         }
         
         val dao = app.database.itemDao()
-        val total = dao.getCount()
-        val notEmpty = dao.getCountNotEmpty()
+        
+        // runBlocking необходим, так как getCount()/getCountNotEmpty() — suspend функции
+        val total = runBlocking { dao.getCount() }
+        val notEmpty = runBlocking { dao.getCountNotEmpty() }
         val bd = if (notEmpty > 0) 2 else if (total > 0) 3 else 0
         
         // Для WIFI-режима проверяем файлы

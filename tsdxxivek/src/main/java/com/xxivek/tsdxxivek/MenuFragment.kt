@@ -346,7 +346,12 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
         appLic.appInfoBD.value = bd
         appLic.appInfoINPUT.value = input
         appLic.appInfoOUT.value = output
-        appendLog("Главное меню", "updateStatusesSync: AFTER bd=${appLic.appInfoBD.value}")
+        
+        // Также обновляем mCount и mCountNotEmpty напрямую (для использования в updateBDStatus)
+        mCount = total
+        mCountNotEmpty = notEmpty
+        
+        appendLog("Главное меню", "updateStatusesSync: AFTER bd=${appLic.appInfoBD.value}, mCount=$mCount, mCountNotEmpty=$mCountNotEmpty")
         
         appendLog("Главное меню", "updateStatusesSync: bd=$bd, input=$input, output=$output, total=$total, notEmpty=$notEmpty")
     }

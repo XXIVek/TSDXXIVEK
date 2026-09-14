@@ -1,38 +1,53 @@
 # История изменений
 
-## 2026-09-14 — Исправление: синхронное обновление статусов ТСД при входе на главный экран
+## 2026-09-14 — ФИНАЛЬНОЕ ИСПРАВЛЕНИЕ: Синхронное обновление статусов ТСД
 
 ### Проблема
 
-При переходе на главный экран (MenuFragment) состояние ТСД **не отображалось** для Socket/Сайт (appConnect1C=2) и WIFI (appConnect1C=4) режимов.
+При переходе на главный экран (MenuFragment) состояние ТСД **не отображалось** при первом входе, но **обновлялось при возврате** с другого экрана.
 
-**Корневая причина:** В `conditionInfo()` (`LicenseUtil.kt`) статус bd определялся из LiveData:
-```kotlin
-var mCount = appLic.appInfoCountBD.value ?: 0  // = 0, так как LiveData ещё пустой!
-if (mCount > 0) {
-    appLic.appInfoBD.postValue(3)  // НЕ выполняется, т.к. mCount == 0
-} else {
-    appLic.appInfoBD.postValue(0)  // Устанавливается bd=0!
-}
-```
+### Корневые причины (ВСЕ ТРИ)
 
-Порядок в `onViewCreated`:
-1. `refreshStatusFromFiles()` — запускает Coroutine (асинхронно)
-2. `conditionInfo()` — читает LiveData = **0** (Coroutine ещё не завершилась)
-3. Observer'ы получают bd=0
+**1. Асинхронное обновление LiveData**
+- `refreshStatusFromFiles()` использовал `CoroutineScope(IO).launch` — асинхронно
+- `conditionInfo()` вызывался раньше, чем Coroutine завершилась
+- LiveData имел value = 0 когда `conditionInfo()` проверял его
 
-**Результат:** Даже если БД содержит записи, на экране отображалось "БД: В базе данных нет записей".
+**2. Порядок подписки Observer'ов**
+- Observer'ы подписывались **после** отправки значений через `postValue()`
+- Значения терялись, так как Observer'ы ещё не слушали LiveData
+
+**3. mCount/mCountNotEmpty не обновлялись синхронно** *(КРИТИЧЕСКАЯ ПРОБЛЕМА)*
+- `updateBDStatus(bd)` использует `mCount` и `mCountNotEmpty` для отображения:
+  ```kotlin
+  "БД: Всего $mCount зап., из них выб. $mCountNotEmpty"
+  ```
+- Эти переменные обновлялись **только через Observer** (асинхронно)
+- Когда `updateBDStatus()` вызывался, `mCount = 0` и `mCountNotEmpty = 0`!
+- **Результат:** Даже при bd=2 отображалось "БД: Всего 0 зап., из них выб. 0"
+
+**4. updateStatusesSync() не вызывался в onResume()**
+- Вызывался только в `onViewCreated()` — срабатывает только при первом создании view
+- При возврате на экран (навигация назад) `onViewCreated()` **не вызывается**
+- Поэтому при возврате статусы обновлялись (через polling), а при первом входе — нет
 
 ### Решение
 
-1. **Добавлен метод `updateStatusesSync()` (`MenuFragment.kt`):**
-   - Синхронно читает БД через `dao.getCount()` и `dao.getCountNotEmpty()`
-   - Синхронно обновляет LiveData через `.value = ...` (не `.postValue()`)
-   - Для WIFI-режима также проверяет файлы Input.json, Output.json
+**Файл:** `MenuFragment.kt`
 
-2. **Изменён порядок в `onViewCreated()`:**
+1. **Добавлен метод `updateStatusesSync()`:**
+   - Синхронно читает БД через `runBlocking { dao.getCount() }`
+   - Для WIFI-режима проверяет файлы Input.json, Output.json
+   - Обновляет LiveData через `.value = ...` (синхронно)
+   - **Обновляет mCount и mCountNotEmpty напрямую:**
+     ```kotlin
+     mCount = total
+     mCountNotEmpty = notEmpty
+     ```
+
+2. **Исправлен порядок в `onViewCreated()`:**
 ```kotlin
-// 1. Подписываем Observer'ы
+// 1. Подписываем Observer'ы на LiveData
 infoLiveData()
 
 // 2. Синхронно обновляем статусы (ДО conditionInfo)
@@ -40,19 +55,33 @@ if (appLic.appConnect1C > 0) {
     updateStatusesSync()
 }
 
-// 3. Теперь LiveData содержит данные
+// 3. Теперь LiveData и mCount содержат актуальные данные
 appLic.conditionInfo()
 ```
 
-3. **Детальное логирование для отладки:**
-   - Логирование в `updateStatusesSync()` и `refreshStatusFromFiles()`
-   - Записи: application, dao, total, notEmpty, bd, input, output
+3. **Добавлен вызов `updateStatusesSync()` в `onResume()`:**
+```kotlin
+override fun onResume() {
+    super.onResume()
+    // Обновляем статусы при каждом возврате на экран
+    if (_binding != null && appLic.appConnect1C > 0) {
+        updateStatusesSync()
+    }
+    // ... polling
+}
+```
+
+4. **Детальное логирование для отладки:**
+   - Логирование в Observer BD: полученное значение
+   - Логирование в updateStatusesSync(): BEFORE/AFTER установки значения
+   - Записи: application, dao, total, notEmpty, bd, mCount, mCountNotEmpty
 
 ### Результат
 
-| Состояние БД | До исправления | После исправления |
-|-------------|---------------|-------------------|
-| total > 0, notEmpty > 0 | bd=0 (ошибка) | bd=2 ✅ |
+| Сценарий | До исправления | После исправления |
+|----------|---------------|-------------------|
+| Первый вход на MenuFragment | bd=0, mCount=0 (ошибка) | bd=2, mCount=150 ✅ |
+| Возврат на MenuFragment | bd=2, mCount=150 (polling) | bd=2, mCount=150 ✅ |
 | total > 0, notEmpty = 0 | bd=0 (ошибка) | bd=3 ✅ |
 | total = 0 | bd=0 | bd=0 ✅ |
 

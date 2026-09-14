@@ -1,5 +1,65 @@
 # История изменений
 
+## 2026-09-14 — Исправление: синхронное обновление статусов ТСД при входе на главный экран
+
+### Проблема
+
+При переходе на главный экран (MenuFragment) состояние ТСД **не отображалось** для Socket/Сайт (appConnect1C=2) и WIFI (appConnect1C=4) режимов.
+
+**Корневая причина:** В `conditionInfo()` (`LicenseUtil.kt`) статус bd определялся из LiveData:
+```kotlin
+var mCount = appLic.appInfoCountBD.value ?: 0  // = 0, так как LiveData ещё пустой!
+if (mCount > 0) {
+    appLic.appInfoBD.postValue(3)  // НЕ выполняется, т.к. mCount == 0
+} else {
+    appLic.appInfoBD.postValue(0)  // Устанавливается bd=0!
+}
+```
+
+Порядок в `onViewCreated`:
+1. `refreshStatusFromFiles()` — запускает Coroutine (асинхронно)
+2. `conditionInfo()` — читает LiveData = **0** (Coroutine ещё не завершилась)
+3. Observer'ы получают bd=0
+
+**Результат:** Даже если БД содержит записи, на экране отображалось "БД: В базе данных нет записей".
+
+### Решение
+
+1. **Добавлен метод `updateStatusesSync()` (`MenuFragment.kt`):**
+   - Синхронно читает БД через `dao.getCount()` и `dao.getCountNotEmpty()`
+   - Синхронно обновляет LiveData через `.value = ...` (не `.postValue()`)
+   - Для WIFI-режима также проверяет файлы Input.json, Output.json
+
+2. **Изменён порядок в `onViewCreated()`:**
+```kotlin
+// 1. Подписываем Observer'ы
+infoLiveData()
+
+// 2. Синхронно обновляем статусы (ДО conditionInfo)
+if (appLic.appConnect1C > 0) {
+    updateStatusesSync()
+}
+
+// 3. Теперь LiveData содержит данные
+appLic.conditionInfo()
+```
+
+3. **Детальное логирование для отладки:**
+   - Логирование в `updateStatusesSync()` и `refreshStatusFromFiles()`
+   - Записи: application, dao, total, notEmpty, bd, input, output
+
+### Результат
+
+| Состояние БД | До исправления | После исправления |
+|-------------|---------------|-------------------|
+| total > 0, notEmpty > 0 | bd=0 (ошибка) | bd=2 ✅ |
+| total > 0, notEmpty = 0 | bd=0 (ошибка) | bd=3 ✅ |
+| total = 0 | bd=0 | bd=0 ✅ |
+
+**Режимы:** Socket/Сайт (2), USB (3), WIFI (4) — все работают корректно.
+
+---
+
 ## 2026-09-14 — Исправление: обновление статусов ТСД для всех режимов при входе на главный экран
 
 ### Проблема

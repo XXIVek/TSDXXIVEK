@@ -65,10 +65,8 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
 
         appState = (requireActivity().application as TSDXXIVekApplication).appState
 
-        // Для всех сопряжённых режимов (Socket/Сайт, USB, WIFI) обновить статусы из БД и файлов при входе на главный экран
-        if (appLic.appConnect1C > 0) {
-            refreshStatusFromFiles()
-        }
+        // Подписываемся на LiveData ДО обновления статусов
+        infoLiveData()
 
         // WIFI-режим: запустить сервера при входе на главный экран
         if (appLic.appConnect1C == 4) {
@@ -128,8 +126,13 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
             }
         }
         appendLog("Главное меню","Проверяем настройки")
+        
+        // Сначала обновляем статусы из БД (синхронно)
+        if (appLic.appConnect1C > 0) {
+            updateStatusesSync()
+        }
+        
         appLic.conditionInfo()
-        infoLiveData()
         appendLog("Главное меню","Настройки проверены")
 
         // Запускаем polling статуса устройства (только для веб-режима)
@@ -309,6 +312,41 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
     }
 
     /**
+     * Синхронно обновить статусы из БД (для использования в UI-потоке).
+     * Работает для всех сопряжённых режимов.
+     */
+    private fun updateStatusesSync() {
+        val context = requireContext()
+        val app = context.applicationContext as? com.xxivek.tsdxxivek.TSDXXIVekApplication
+        
+        if (app == null) {
+            appendLog("Главное меню", "updateStatusesSync: application is null")
+            return
+        }
+        
+        val dao = app.database.itemDao()
+        val total = dao.getCount()
+        val notEmpty = dao.getCountNotEmpty()
+        val bd = if (notEmpty > 0) 2 else if (total > 0) 3 else 0
+        
+        // Для WIFI-режима проверяем файлы
+        var input = 0
+        var output = 0
+        if (appLic.appConnect1C == 4) {
+            val manager = FileExchangeManager(context, usbMode = false)
+            input = if (manager.hasInputFile()) 3 else 0
+            output = if (manager.hasOutputFile()) 3 else 0
+        }
+
+        // Синхронно обновляем LiveData
+        appLic.appInfoBD.value = bd
+        appLic.appInfoINPUT.value = input
+        appLic.appInfoOUT.value = output
+        
+        appendLog("Главное меню", "updateStatusesSync: bd=$bd, input=$input, output=$output, total=$total, notEmpty=$notEmpty")
+    }
+
+    /**
      * Обновить статусы ТСД из БД и файлов при входе на главный экран.
      * Работает для всех сопряжённых режимов:
      * - USB (appConnect1C == 3): читает БД + файлы (Input.json, Output.json, tsd_dev_status.txt)
@@ -319,12 +357,23 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
         val context = requireContext()
         
         CoroutineScope(IO).launch {
+            appendLog("Главное меню", "refreshStatusFromFiles: начало, appConnect1C=$appLic.appConnect1C")
+            
             // 1. Проверяем БД
             val app = context.applicationContext as? com.xxivek.tsdxxivek.TSDXXIVekApplication
+            appendLog("Главное меню", "refreshStatusFromFiles: application=${app != null}")
+            
             val dao = app?.database?.itemDao()
+            appendLog("Главное меню", "refreshStatusFromFiles: dao=${dao != null}")
+            
             val total = dao?.getCount() ?: 0
+            appendLog("Главное меню", "refreshStatusFromFiles: total=$total")
+            
             val notEmpty = dao?.getCountNotEmpty() ?: 0
+            appendLog("Главное меню", "refreshStatusFromFiles: notEmpty=$notEmpty")
+            
             val bd = if (notEmpty > 0) 2 else if (total > 0) 3 else 0
+            appendLog("Главное меню", "refreshStatusFromFiles: calculated bd=$bd")
 
             // 2. Проверяем файлы обмена (только для USB/WIFI режимов)
             var input = 0
@@ -334,6 +383,7 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
                 val manager = FileExchangeManager(context, usbMode = (appLic.appConnect1C == 3))
                 input = if (manager.hasInputFile()) 3 else 0
                 output = if (manager.hasOutputFile()) 3 else 0
+                appendLog("Главное меню", "refreshStatusFromFiles: input=$input, output=$output")
 
                 // Записываем статус в tsd_dev_status.txt (только для USB)
                 if (appLic.appConnect1C == 3) {
@@ -350,12 +400,15 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
                 }
             }
 
-            // 3. Обновляем LiveData для UI
-            appLic.appInfoBD.postValue(bd)
-            appLic.appInfoINPUT.postValue(input)
-            appLic.appInfoOUT.postValue(output)
-
-            appendLog("Главное меню", "refreshStatusFromFiles: bd=$bd, input=$input, output=$output, режим=$appLic.appConnect1C")
+            // 3. Обновляем LiveData для UI — используем postValue() для безопасности потока
+            activity?.runOnUiThread {
+                if (_binding != null) {
+                    appendLog("Главное меню", "refreshStatusFromFiles: update LiveData bd=$bd, input=$input, output=$output")
+                    appLic.appInfoBD.postValue(bd)
+                    appLic.appInfoINPUT.postValue(input)
+                    appLic.appInfoOUT.postValue(output)
+                }
+            }
         }
     }
 

@@ -41,7 +41,8 @@ class LocalWifiServer(private val appContext: android.content.Context) {
 
         scope.launch {
             try {
-                serverSocket = ServerSocket(port)
+                // Привязываемся ко ВСЕМ интерфейсам (0.0.0.0), а не только к localhost
+                serverSocket = ServerSocket(port, 50, java.net.InetAddress.getByName("0.0.0.0"))
                 isRunning = true
                 appendLog(TAG, "JSON API сервер запущен на порту $port")
 

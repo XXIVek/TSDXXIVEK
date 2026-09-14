@@ -70,6 +70,11 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
             refreshStatusFromFiles()
         }
 
+        // WIFI-режим: запустить сервера при входе на главный экран
+        if (appLic.appConnect1C == 4) {
+            startWifiServers()
+        }
+
         if (DESIGN == 0) {
            binding.bScaner.setOnClickListener (
                 Navigation.createNavigateOnClickListener(R.id.action_menuFragment_to_scanerFragment))
@@ -847,6 +852,67 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
         super.onPause()
         // Останавливаем polling при уходе с экрана
         stopStatusPolling()
+    }
+
+    /**
+     * Запустить WIFI-серверы (LocalWifiServer + BroadcastServer).
+     * Вызывается при входе в MenuFragment в WIFI-режиме.
+     */
+    private fun startWifiServers() {
+        val context = requireContext()
+        val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+        val portStr = prefs.getString(AppConstants.APP_PREF_PORT, null)
+        val port = portStr?.toIntOrNull() ?: return
+        if (port <= 0) return
+
+        val license = prefs.getString(AppConstants.APP_PREF_LIC, "-1") ?: "-1"
+
+        // Запускаем LocalWifiServer
+        try {
+            val server = com.xxivek.tsdxxivek.serverHTTP.LocalWifiServer(context)
+            server.start(port)
+            appendLog("Главное меню", "LocalWifiServer запущен на порту $port")
+        } catch (e: Exception) {
+            appendLog("Главное меню", "LocalWifiServer ОШИБКА: ${e.message}")
+        }
+
+        // Запускаем BroadcastServer
+        try {
+            val broadcast = com.xxivek.tsdxxivek.serverHTTP.BroadcastServer()
+            val localIp = getLocalWifiIp(context)
+            val subnetPrefix = if (localIp.contains(".")) {
+                localIp.substringBeforeLast(".")
+            } else {
+                "192.168.1"
+            }
+            broadcast.start(subnetPrefix, port, license)
+            appendLog("Главное меню", "BroadcastServer запущен: $subnetPrefix.255")
+        } catch (e: Exception) {
+            appendLog("Главное меню", "BroadcastServer ОШИБКА: ${e.message}")
+        }
+    }
+
+    /**
+     * Получить локальный IP-адрес WiFi.
+     */
+    private fun getLocalWifiIp(context: Context): String {
+        try {
+            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager
+            val network = cm?.activeNetwork
+            val networkCapabilities = cm?.getNetworkCapabilities(network)
+            val linkProperties = network?.let { cm?.getLinkProperties(it) }
+            val inetAddresses = linkProperties?.linkAddresses?.mapNotNull { it.address }
+                ?: return "127.0.0.1"
+            for (addr in inetAddresses) {
+                val hostAddr = addr.hostAddress
+                if (hostAddr != null && !hostAddr.contains(":") && !hostAddr.startsWith("127.")) {
+                    return hostAddr
+                }
+            }
+        } catch (e: Exception) {
+            appendLog("Главное меню", "Ошибка получения IP: ${e.message}")
+        }
+        return "127.0.0.1"
     }
 
     override fun onDestroyView() {

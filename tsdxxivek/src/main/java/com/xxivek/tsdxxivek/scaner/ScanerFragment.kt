@@ -596,6 +596,9 @@ class ScanerFragment : Fragment() {
                                         binding.layoutScanResultTest.visibility = View.GONE
                                         // Автоматическая активация
                                         activateDevice(result.activationCode)
+                                    } else if (result.useSocket && result.port > 0) {
+                                        // WIFI-режим: запускаем LocalWifiServer + BroadcastServer
+                                        startWifiMode(requireContext(), result)
                                     } else if (result.useSocket) {
                                         // Socket-режим: показываем поле для ручного ввода
                                         val activationCode = mText.substringAfter("PAIR:").uppercase()
@@ -890,6 +893,35 @@ class ScanerFragment : Fragment() {
             // Сохраняем devStatus в поле для восстановления после возврата из настроек
             pendingDevStatus = devStatus
             requestManageExternalStoragePermission()
+        }
+    }
+
+    /**
+     * Запустить WIFI-режим: сохранить сопряжение, установить appConnect1C=4, перейти на MenuFragment.
+     * Сервера запускаются в MenuFragment.startWifiServers().
+     */
+    private fun startWifiMode(context: Context, result: QrPairingParser.PairingResult) {
+        // Сохраняем сопряжение
+        QrPairingParser().savePairing(context, result)
+
+        // Обновляем appLic
+        appLic.appConnect1C = 4
+        appLic.appKONF = result.konf.toString()
+        appLic.appLIC = result.license
+
+        // Сохраняем appConnect1C в SharedPreferences
+        val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+        prefs.edit().apply {
+            putInt(AppConstants.APP_PREF_CONNECT1C, 4)
+            putString(AppConstants.APP_PREF_LIC, result.license).apply()
+            putString(AppConstants.APP_PREF_KONF, result.konf.toString()).apply()
+            apply()
+        }
+
+        // Переход на главное меню — сервера запустятся в MenuFragment.onStartWifiServers
+        activity?.runOnUiThread {
+            val navController = binding.root.findNavController()
+            navController.navigate(R.id.action_scanerFragment_to_menuFragment)
         }
     }
 

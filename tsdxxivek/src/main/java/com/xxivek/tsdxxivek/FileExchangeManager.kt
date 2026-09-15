@@ -303,6 +303,17 @@ class FileExchangeManager(
             appOper = oper
             appClient = client
 
+            // Сохраняем oper и client глобально через LicenseUtil (для отображения на UI)
+            try {
+                val app = context.applicationContext as? com.xxivek.tsdxxivek.TSDXXIVekApplication
+                if (app != null) {
+                    app.appLic.setAppOper(oper, context)
+                    app.appLic.setAppClient(client, context)
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "readInputAndImport: не удалось сохранить oper/client через LicenseUtil", e)
+            }
+
             // Парсим данные
             val items = parseJsonData(jsonObject)
 

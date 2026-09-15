@@ -140,6 +140,10 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
         }
         
         appLic.conditionInfo()
+        
+        // Обновляем отображение операции сразу (синхронно)
+        updateOperInfo()
+        
         appendLog("Главное меню","Настройки проверены")
 
         // Запускаем polling статуса устройства (только для веб-режима)
@@ -209,12 +213,13 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
             0 -> {
                 binding.textViewBD.setBackgroundColor(ContextCompat.getColor(ctx, R.color.text_fon))
                 binding.textViewBD.text = "БД: В базе данных нет записей"
-                binding.textViewOperInfo.setTextColor(ContextCompat.getColor(ctx, R.color.text_textColor))
-                binding.textViewOperInfo.text = "Операция не определена."
+                // Операция может быть определена даже при пустой БД (например, инвентаризация)
+                updateOperInfo()
             }
             1 -> {
                 binding.textViewBD.setBackgroundColor(ContextCompat.getColor(ctx, R.color.error))
                 binding.textViewBD.text = "БД: Ошибка в работе с базой данных"
+                updateOperInfo()
             }
             2 -> {
                 binding.textViewBD.setBackgroundColor(ContextCompat.getColor(ctx, R.color.attention))
@@ -659,10 +664,12 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
                         if (result.success) {
                             updateInputStatusUI(0)
                             appLic.conditionInfo()
+                            updateOperInfo()
                             Toast.makeText(context, result.message, Toast.LENGTH_LONG).show()
                             appendLog("Главное меню", "Импорт USB успешен: ${result.message}")
                         } else {
                             updateInputStatusUI(1)
+                            updateOperInfo()
                             Toast.makeText(context, "Ошибка импорта: ${result.message}", Toast.LENGTH_LONG).show()
                             appendLog("Главное меню", "Импорт USB не удался: ${result.message}")
                         }
@@ -693,6 +700,7 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
                             // Обновляем статусы
                             updateInputStatusUI(0)
                             appLic.conditionInfo()
+                            updateOperInfo()
                             
                             // Сбрасываем статус input=0 на устройстве
                             appLic.appInfoINPUT.postValue(0)
@@ -701,6 +709,7 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
                             appendLog("Главное меню", "Импорт WIFI успешен: ${result.message}")
                         } else {
                             updateInputStatusUI(1)
+                            updateOperInfo()
                             Toast.makeText(context, "Ошибка импорта: ${result.message}", Toast.LENGTH_LONG).show()
                             appendLog("Главное меню", "Импорт WIFI не удался: ${result.message}")
                         }

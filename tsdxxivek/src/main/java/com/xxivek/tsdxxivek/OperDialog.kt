@@ -46,7 +46,8 @@ class OperDialog: DialogFragment() {
 //        binding.bInput.setOnClickListener{onInput()}
     }
     private fun onCansel(oper:Int){
-        appLic.appOper=oper.toString()
+        appLic.appOper = oper.toString()
+        appLic.setAppOper(oper.toString(), requireContext())
         appLic.conditionInfo()
         dismiss()
     }

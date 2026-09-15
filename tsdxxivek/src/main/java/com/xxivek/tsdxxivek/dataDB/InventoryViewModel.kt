@@ -1,11 +1,9 @@
-package com.xxivek.tsdxxivek.dataDB
+﻿package com.xxivek.tsdxxivek.dataDB
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.xxivek.tsdxxivek.*
-import com.xxivek.tsdxxivek.dataXML.BuilderXML
-import com.xxivek.tsdxxivek.dataXML.XMLDOMParser
 import kotlinx.coroutines.*
 import org.w3c.dom.Document
 import org.w3c.dom.Element

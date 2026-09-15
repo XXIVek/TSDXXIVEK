@@ -1,4 +1,4 @@
-package com.xxivek.tsdxxivek.serverHTTP
+﻿package com.xxivek.tsdxxivek.serverHTTP
 
 import com.xxivek.tsdxxivek.AppConstants
 import com.xxivek.tsdxxivek.TSDXXIVekApplication
@@ -15,7 +15,7 @@ import java.net.Socket
 
 /**
  * HTTP-сервер для режима "Локальный WIFI".
- * Заменяет ServerSocketXXI для JSON-обмена.
+ * HTTP-сервер для локального обмена данными в режиме WIFI.
  * Работает параллельно с существующим HTTP-сервером.
  */
 class LocalWifiServer(private val appContext: android.content.Context) {
@@ -139,13 +139,27 @@ class LocalWifiServer(private val appContext: android.content.Context) {
      * Ответ: {"device_uuid":"","status":{"pairing":true,"konf":5,"bd":3,"input":2,"output":4}}
      */
     private fun handleGetStatus(): String {
+        // Читаем bd напрямую из БД, а не из LiveData
+        val app = appContext.applicationContext as? com.xxivek.tsdxxivek.TSDXXIVekApplication
+        var bd = 0
+        if (app != null) {
+            try {
+                val dao = app.database.itemDao()
+                val total = runBlocking { dao.getCount() }
+                val notEmpty = runBlocking { dao.getCountNotEmpty() }
+                bd = if (notEmpty > 0) 2 else if (total > 0) 3 else 0
+            } catch (e: Exception) {
+                appendLog(TAG, "handleGetStatus ошибка чтения БД: ${e.message}")
+            }
+        }
+        
         val json = buildString {
             append("{")
             append("\"device_uuid\":\"\",")
             append("\"status\":{")
             append("\"pairing\":${appLic.appConnect1C == 4},")
             append("\"konf\":${appLic.appKONF.toIntOrNull() ?: 0},")
-            append("\"bd\":${appLic.appInfoBD.value ?: 0},")
+            append("\"bd\":$bd,")
             append("\"input\":${appLic.appInfoINPUT.value ?: 0},")
             append("\"output\":${appLic.appInfoOUT.value ?: 0}")
             append("}")
@@ -170,10 +184,26 @@ class LocalWifiServer(private val appContext: android.content.Context) {
 
         // Парсим output из запроса (ПК может установить output=0)
         val outputMatch = Regex("\"output\":\\s*(\\d+)").find(body)
-        outputMatch?.let { match ->
+        val newOutput = outputMatch?.let { match ->
             val output = match.groupValues[1].toInt()
             appLic.appInfoOUT.postValue(output)
             appendLog(TAG, "output установлен: $output")
+            
+            // Если output изменился с 3 на 0 — файл загружен ПК, удаляем его
+            if (output == 0) {
+                val exchangeDir = java.io.File(AppConstants.FILE_EXCHANGE_DIR)
+                val outputFile = java.io.File(exchangeDir, AppConstants.FILE_OUTPUT_JSON)
+                if (outputFile.exists()) {
+                    val deleted = outputFile.delete()
+                    if (deleted) {
+                        appendLog(TAG, "tsd_Output.json удалён (ПК подтвердил загрузку)")
+                    } else {
+                        appendLog(TAG, "Ошибка удаления tsd_Output.json")
+                    }
+                }
+            }
+            
+            output
         }
 
         // Парсим input из запроса
@@ -231,7 +261,7 @@ class LocalWifiServer(private val appContext: android.content.Context) {
      */
     private fun handleGetOutput(): String {
         val context = appContext
-        val fileManager = FileExchangeManager(context)
+        val fileManager = FileExchangeManager(context, usbMode = false)
 
         // Формируем Output.json если нет
         if (!fileManager.hasOutputFile()) {

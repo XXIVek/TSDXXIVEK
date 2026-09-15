@@ -17,7 +17,7 @@ class StatusPollingService {
 
     companion object {
         const val TAG = "StatusPolling"
-        const val POLL_INTERVAL_MS = 5000L // 5 секунд
+        const val POLL_INTERVAL_MS = 2000L // 5 секунд
     }
 
     private var coroutineScope: CoroutineScope? = null

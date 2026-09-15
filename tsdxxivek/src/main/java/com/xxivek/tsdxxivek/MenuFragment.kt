@@ -1,4 +1,4 @@
-package com.xxivek.tsdxxivek
+﻿package com.xxivek.tsdxxivek
 
 import android.app.AlertDialog
 import android.content.Context
@@ -21,6 +21,7 @@ import com.xxivek.tsdxxivek.TSDXXIVekApplication
 import com.xxivek.tsdxxivek.databinding.FragmentMenuBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import com.xxivek.tsdxxivek.utilAPP.appendLog
@@ -95,6 +96,9 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
             } else if (appLic.appConnect1C == 3) {
                 // USB-режим: экспорт в Output.json
                 exportToUSB()
+            } else if (appLic.appConnect1C == 4) {
+                // WIFI-режим: экспорт в Output.json + отправка на ПК
+                exportToWifi()
             } else {
                 // Локальный режим: очистка quantity для выгрузки
                 UtilDB().clearQuantity()
@@ -128,9 +132,11 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
         }
         appendLog("Главное меню","Проверяем настройки")
         
-        // Сначала обновляем статусы из БД (синхронно)
-        if (appLic.appConnect1C > 0) {
-            updateStatusesSync()
+        // Обновляем статусы после отрисовки View
+        view.post {
+            if (appLic.appConnect1C > 0) {
+                updateStatusesSync()
+            }
         }
         
         appLic.conditionInfo()
@@ -423,6 +429,43 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
     }
 
     /**
+     * Запустить WIFI-статус polling — опрос БД каждые 5 секунд.
+     * Для WIFI-режима (appConnect1C == 4), где нет HTTP API к удалённому серверу.
+     */
+    private fun startWifiStatusPolling() {
+        val context = requireContext()
+        
+        CoroutineScope(IO).launch {
+            appendLog("Главное меню", "WIFI polling запущен (5 сек)")
+            
+            while (true) {
+                try {
+                    delay(2000) // 2 секунды
+                    
+                    val app = context.applicationContext as? com.xxivek.tsdxxivek.TSDXXIVekApplication
+                    if (app == null) continue
+                    
+                    val dao = app.database.itemDao()
+                    val total = dao.getCount()
+                    val notEmpty = dao.getCountNotEmpty()
+                    val bd = if (notEmpty > 0) 2 else if (total > 0) 3 else 0
+                    
+                    activity?.runOnUiThread {
+                        if (_binding != null) {
+                            mCount = total
+                            mCountNotEmpty = notEmpty
+                            updateBDStatus(bd)
+                            appendLog("Главное меню", "WIFI polling: bd=$bd, total=$total, notEmpty=$notEmpty")
+                        }
+                    }
+                } catch (e: Exception) {
+                    appendLog("Главное меню", "WIFI polling ошибка: ${e.message}")
+                }
+            }
+        }
+    }
+
+    /**
      * Запустить polling статуса устройства.
      */
     private fun startStatusPolling() {
@@ -431,10 +474,13 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
             .getBoolean("use_website", false)
 
         if (!useSite) {
-            // USB-режим: файловый polling
+            // USB/WIFI-режим: файловый polling
             val isUsbMode = appLic.appConnect1C == 3
+            val isWifiMode = appLic.appConnect1C == 4
             val fileExchangeManager = FileExchangeManager(requireContext(), usbMode = isUsbMode)
             // Восстанавливаем статус из файла (pairing, konf)
+            // Инициализация pairing/konf из SharedPreferences
+            fileExchangeManager.initFromPrefs()
             // readStatus() уже обновляет currentStatus внутри себя
             if (isUsbMode) {
                 // Для USB-режима принудительно устанавливаем pairing=true
@@ -482,6 +528,11 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
             }
             fileExchangeManager.startPolling()
             appendLog("Главное меню", "Polling запущен (файловый, 5 сек)")
+            
+            // Для WIFI-режима: отдельный polling статуса из БД
+            if (isWifiMode) {
+                startWifiStatusPolling()
+            }
             return
         }
 
@@ -624,6 +675,44 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
             return
         }
 
+        // Локальный WIFI-режим: чтение Input.json напрямую (аналогично USB)
+        if (appLic.appConnect1C == 4) {
+            val manager = FileExchangeManager(context, usbMode = false)
+            // Восстанавливаем pairing/konf из SharedPreferences
+            manager.initFromPrefs()
+            
+            // Проверяем наличие данных для загрузки — только по файлу (LiveData может не успеть обновиться)
+            val hasInputFile = manager.hasInputFile()
+            
+            if (hasInputFile) {
+                appendLog("Главное меню", "onInput: WIFI-режим, Input.json найден, начинаем импорт")
+                CoroutineScope(IO).launch {
+                    val result = manager.readInputAndImport()
+                    activity?.runOnUiThread {
+                        if (result.success) {
+                            // Обновляем статусы
+                            updateInputStatusUI(0)
+                            appLic.conditionInfo()
+                            
+                            // Сбрасываем статус input=0 на устройстве
+                            appLic.appInfoINPUT.postValue(0)
+                            
+                            Toast.makeText(context, result.message, Toast.LENGTH_LONG).show()
+                            appendLog("Главное меню", "Импорт WIFI успешен: ${result.message}")
+                        } else {
+                            updateInputStatusUI(1)
+                            Toast.makeText(context, "Ошибка импорта: ${result.message}", Toast.LENGTH_LONG).show()
+                            appendLog("Главное меню", "Импорт WIFI не удался: ${result.message}")
+                        }
+                    }
+                }
+            } else {
+                appendLog("Главное меню", "onInput: WIFI-режим, Input.json не найден")
+                Toast.makeText(context, "Нет данных для загрузки (Input.json отсутствует)", Toast.LENGTH_SHORT).show()
+            }
+            return
+        }
+
         // Локальный режим: старый сценарий
         val builderAD = AlertDialog.Builder(binding.root.context)
         builderAD.setTitle("Операции с БД")
@@ -698,6 +787,59 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
                         Toast.LENGTH_LONG
                     ).show()
                     appendLog("Главное меню", "Выгрузка USB не удалась: ${result.message}")
+                }
+            }
+        }
+    }
+
+    // ----------------------------------------------------------------
+    // Выгрузка данных в WIFI-режиме
+    // ----------------------------------------------------------------
+
+    /**
+     * Экспорт данных из БД в Output.json для WIFI-режима.
+     * ПК сам запрашивает данные через GET /api/v1/exchange/output.
+     */
+    private fun exportToWifi() {
+        val context = requireContext()
+
+        appendLog("Главное меню", "exportToWifi: начало")
+
+        CoroutineScope(IO).launch {
+            // Проверяем что есть данные для выгрузки (в фоновом потоке)
+            val items = TSDXXIVekApplication.instance?.database?.itemDao()?.getItemNotEmpty2() ?: emptyList()
+            if (items.isEmpty()) {
+                activity?.runOnUiThread {
+                    Toast.makeText(context, "Нет данных для выгрузки", Toast.LENGTH_SHORT).show()
+                }
+                return@launch
+            }
+
+            appendLog("Главное меню", "exportToWifi: ${items.size} записей")
+
+            // Создаём FileExchangeManager для WIFI-режима (usbMode = false)
+            val manager = FileExchangeManager(context, usbMode = false)
+            val result = manager.writeOutputAndExport()
+
+            activity?.runOnUiThread {
+                if (result.success) {
+                    updateOutputStatusUI(3)
+                    
+                    // Устанавливаем output=3 в LiveData
+                    appLic.appInfoOUT.postValue(3)
+                    
+                    Toast.makeText(context,
+                        "Данные готовы для выгрузки: ${result.message}\nПК может запросить данные",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    appendLog("Главное меню", "Выгрузка WIFI успешна: ${result.message}")
+                } else {
+                    updateOutputStatusUI(1)
+                    Toast.makeText(context,
+                        "Ошибка выгрузки: ${result.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    appendLog("Главное меню", "Выгрузка WIFI не удалась: ${result.message}")
                 }
             }
         }
@@ -912,16 +1054,11 @@ class MenuFragment : Fragment(), StatusPollingService.Callback {
 
     override fun onResume() {
         super.onResume()
-        // Обновляем статусы при каждом возврате на экран
-        if (_binding != null && appLic.appConnect1C > 0) {
-            updateStatusesSync()
-        }
-        // Запускаем polling при возврате на экран
+        // Запускаем polling при возврате на экран (без updateStatusesSync)
         if (pollingService == null || !pollingService!!.isPollingRunning()) {
             startStatusPolling()
         }
     }
-
     override fun onPause() {
         super.onPause()
         // Останавливаем polling при уходе с экрана

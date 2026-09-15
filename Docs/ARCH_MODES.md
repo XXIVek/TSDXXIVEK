@@ -24,7 +24,7 @@
 | Режим | appConnect1C | Механизм | Файлы |
 |-------|:---:|----------|-------|
 | Socket / Сайт | 2 | HTTP API к серверу через промежуточный сайт | `api/ApiClient.kt`, `api/FileDownloadApi.kt`, `api/StatusPollingService.kt` |
-| Локальный USB | 3 | Файловый обмен через `/storage/emulated/0/Download/TSD/` | `FileExchangeManager.kt` |
+| Локальный USB | 3 | Файловый обмен через `/storage/emulated/0/Download/` | `FileExchangeManager.kt` |
 | Локальный WIFI | 4 | HTTP API напрямую к ТСД по IP | `serverHTTP/LocalWifiServer.kt`, `serverHTTP/BroadcastServer.kt` |
 
 ---
@@ -58,7 +58,7 @@
 ### 2.2 Локальный USB (appConnect1C = 3)
 
 **Концепция:**
-- Файловый обмен через общую папку `/storage/emulated/0/Download/TSD/`
+- Файловый обмен через общую папку `/storage/emulated/0/Download/`
 - Состояния ТСД передаются через файл `tsd_dev_status.txt` (SSV формат)
 - Обработка под 1С на ПК использует ADB сервер для чтения/записи файлов
 
@@ -170,7 +170,7 @@ PAIR:true;socket:true;konf:1;LOGGING:0;Port:8180;Lic:1
 
 ### 4.3 Файловая структура обмена (режимы USB и WIFI)
 
-Данные обмена хранятся в папке `/storage/emulated/0/Download/TSD/`:
+Данные обмена хранятся в папке `/storage/emulated/0/Download/`:
 - `tsd_Input.json` — данные для загрузки в ТСД
 - `tsd_Output.json` — данные для выгрузки из ТСД
 - `tsd_dev_status.txt` — статус устройства (SSV формат)

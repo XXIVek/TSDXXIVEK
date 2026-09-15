@@ -14,7 +14,10 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.navigation.Navigation
+import kotlinx.coroutines.launch
+import androidx.lifecycle.lifecycleScope
 import com.xxivek.tsdxxivek.databinding.FragmentLogoBinding
+import android.util.Log
 
 class LogoFragment : Fragment() {
     // binding FragmentItemListBinding
@@ -38,6 +41,9 @@ class LogoFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         prefs = binding.root.context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+
+        // Первичный анализ состояния ТСД (до входа в MenuFragment)
+        performPrimaryAnalysis()
         if (msg_server.isBlank()){
             appLic.appInfoINPUT.postValue(0)
         }
@@ -207,4 +213,44 @@ class LogoFragment : Fragment() {
 //            binding.radioButtonD.isChecked=true
 //        }
     }
+
+
+        private fun performPrimaryAnalysis() {
+            if (appLic.appConnect1C > 0) {
+                try {
+                    val app = TSDXXIVekApplication.instance
+                    if (app != null) {
+                        val dao = app.database?.itemDao()
+                        var total = 0
+                        var notEmpty = 0
+                        viewLifecycleOwner.lifecycleScope.launch {
+                            total = dao?.getCount() ?: 0
+                            notEmpty = dao?.getCountNotEmpty() ?: 0
+                            if (notEmpty > 0) { appLic.appInfoBD.postValue(2) }
+                            else if (total > 0) { appLic.appInfoBD.postValue(3) }
+                            else { appLic.appInfoBD.postValue(0) }
+                            Log.d("LogoFragment", "Первичный анализ bd: total=$total, notEmpty=$notEmpty -> bd=${appLic.appInfoBD.value}")
+                        }
+                    }
+                    val inputDir = java.io.File(AppConstants.FILE_EXCHANGE_DIR)
+                    val inputFile = java.io.File(inputDir, AppConstants.FILE_INPUT_JSON)
+                    val outputFile = java.io.File(inputDir, AppConstants.FILE_OUTPUT_JSON)
+                    if (inputFile.exists()) { appLic.appInfoINPUT.postValue(3); Log.d("LogoFragment", "tsd_Input.json найден -> input=3") }
+                    else { appLic.appInfoINPUT.postValue(0); Log.d("LogoFragment", "tsd_Input.json не найден -> input=0") }
+                    if (outputFile.exists()) { appLic.appInfoOUT.postValue(2); Log.d("LogoFragment", "tsd_Output.json найден -> output=2") }
+                    else { appLic.appInfoOUT.postValue(0); Log.d("LogoFragment", "tsd_Output.json не найден -> output=0") }
+                } catch (e: Exception) {
+                    Log.e("LogoFragment", "Ошибка первичного анализа", e)
+                    appLic.appInfoBD.postValue(1)
+                    appLic.appInfoINPUT.postValue(1)
+                    appLic.appInfoOUT.postValue(1)
+                }
+            } else {
+                appLic.appInfoBD.postValue(0)
+                appLic.appInfoINPUT.postValue(0)
+                appLic.appInfoOUT.postValue(0)
+                Log.d("LogoFragment", "Первичный анализ: сопряжение отсутствует")
+            }
+        }
+
 }

@@ -100,7 +100,7 @@
 
 **Expected Result:**
 - HTTP-ответ: `200 OK`, тело: `{"status":"ok","message":"Данные получены"}`
-- Файл `tsd_Input.json` создан в `/sdcard/download/` (или `AppConstants.FILE_EXCHANGE_DIR`)
+- Файл `tsd_Input.json` создан в `/storage/emulated/0/Download/` (или `AppConstants.FILE_EXCHANGE_DIR`)
 - Содержимое файла совпадает с отправленным JSON
 - Статус `input` установлен в `3` (has data)
 - В логах: `"tsd_Input.json записан, input=3"`

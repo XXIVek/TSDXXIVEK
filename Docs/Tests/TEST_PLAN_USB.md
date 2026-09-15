@@ -1,7 +1,7 @@
 # Test Plan — Local USB Mode (appConnect1C=3)
 
 > **Device:** TSD (Terminal Collection Device) / Android TSDXXIVEK application
-> **Mode:** Local USB / File Exchange — file-based JSON exchange via `/storage/emulated/0/Download/TSD/`
+> **Mode:** Local USB / File Exchange — file-based JSON exchange via `/storage/emulated/0/Download/`
 > **Scope:** Main scenarios only (no edge-case / negative testing)
 > **Priority:** P0 = Critical / Blocker, P1 = Major, P2 = Minor
 > **Test Environment:** TSD with Android 11+ (API 30+), file exchange directory: `/storage/emulated/0/Download/`

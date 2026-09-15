@@ -55,6 +55,68 @@ class FileExchangeManager(
     var appClient: String = ""
 
     /**
+     * Инициализация pairing/konf из SharedPreferences.
+     * Вызывается при создании FileExchangeManager для восстановления состояния.
+     */
+    fun initFromPrefs() {
+        try {
+            val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+            val konfStr = prefs.getString(AppConstants.APP_PREF_KONF, null)
+            val konf = konfStr?.toIntOrNull() ?: currentStatus.konf
+
+            // Проверяем сопряжение по лицензии
+            val lic = prefs.getString(AppConstants.APP_PREF_LIC, "-1") ?: "-1"
+            val paired = (lic != null && lic != "-1" && konf >= 0)
+
+            if (paired) {
+                currentStatus = DeviceStatus(true, konf, currentStatus.bd, currentStatus.input, currentStatus.output)
+                Log.d(TAG, "initFromPrefs: сопряжение восстановлено — pairing=true, konf=$konf")
+            } else {
+                currentStatus = DeviceStatus(false, 0, currentStatus.bd, currentStatus.input, currentStatus.output)
+                Log.d(TAG, "initFromPrefs: сопряжение отсутствует")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "initFromPrefs: ошибка", e)
+        }
+    }
+
+    /**
+     * Восстановить полный статус из tsd_dev_status.txt или SharedPreferences.
+     * Вызывается при создании FileExchangeManager для полного восстановления состояния.
+     */
+    fun initFullStatus() {
+        try {
+            // Сначала пробуем прочитать из файла статуса
+            val statusFile = File(exchangeDir, AppConstants.FILE_DEV_STATUS)
+            if (statusFile.exists() && statusFile.canRead() && statusFile.length() > 0L) {
+                val ssv = statusFile.readText().trim()
+                val status = DeviceStatus.fromSsv(ssv)
+                if (status != null) {
+                    // Для USB-режима игнорируем pairing и konf из файла
+                    val finalStatus = if (usbMode) {
+                        status.copy(
+                            pairing = currentStatus.pairing,
+                            konf = currentStatus.konf
+                        )
+                    } else {
+                        status
+                    }
+                    currentStatus = finalStatus
+                    Log.d(TAG, "initFullStatus: статус восстановлен из файла — ${DeviceStatus.toSsv(finalStatus)}")
+                    return
+                }
+            }
+
+            // Если файл не найден (WIFI-режим), восстанавливаем только pairing/konf
+            initFromPrefs()
+        } catch (e: Exception) {
+            Log.e(TAG, "initFullStatus: ошибка", e)
+            initFromPrefs()
+        }
+    }
+
+
+    /**
      * Получить konf из SharedPreferences (только для USB-режима).
      * Если не найден — возвращает текущий konf из currentStatus.
      */
@@ -95,7 +157,6 @@ class FileExchangeManager(
     fun readStatus(): DeviceStatus? {
         val statusFile = File(exchangeDir, AppConstants.FILE_DEV_STATUS)
         if (!statusFile.exists()) {
-            Log.d(TAG, "tsd_dev_status.txt не найден")
             return null
         }
 
@@ -103,7 +164,6 @@ class FileExchangeManager(
         if (!statusFile.canRead()) {
             Log.w(TAG, "readStatus: файл недоступен для чтения, удаляем ${statusFile.absolutePath}")
             statusFile.delete()
-            Log.d(TAG, "tsd_dev_status.txt не найден")
             return null
         }
 
@@ -111,7 +171,6 @@ class FileExchangeManager(
         if (statusFile.length() == 0L) {
             Log.w(TAG, "readStatus: файл пустой (length=0), удаляем ${statusFile.absolutePath}")
             statusFile.delete()
-            Log.d(TAG, "tsd_dev_status.txt не найден (удалён пустой)")
             return null
         }
 
@@ -268,7 +327,12 @@ class FileExchangeManager(
                 input = 0,
                 output = currentStatus.output
             )
-            writeStatus(newStatus)
+            if (usbMode) {
+                writeStatus(newStatus)
+            } else {
+                // Для WIFI-режима не пишем файл статуса — статус передаётся через HTTP
+                currentStatus = newStatus
+            }
 
             // Удаляем Input.json после загрузки
             inputFile.delete()
@@ -317,13 +381,21 @@ class FileExchangeManager(
             val input = existingStatus?.input ?: currentStatus.input
 
             // Обновляем статус: output=3, bd по факту
-            writeStatus(DeviceStatus(
-                pairing = pairing,
-                konf = konf,
-                bd = bd,
-                input = input,
-                output = 3
-            ))
+            if (usbMode) {
+                writeStatus(DeviceStatus(
+                    pairing = pairing,
+                    konf = konf,
+                    bd = bd,
+                    input = input,
+                    output = 3
+                ))
+            } else {
+                // Для WIFI-режима не пишем файл статуса — статус передаётся через HTTP
+                currentStatus = currentStatus.copy(
+                    bd = bd,
+                    output = 3
+                )
+            }
 
             // Вызываем callback onExportComplete
             onExportComplete?.invoke(true, "Выгружено ${items.size} записей")
@@ -422,9 +494,20 @@ class FileExchangeManager(
             Log.d(TAG, "Опрос папки запущен")
             while (pollingRunning) {
                 try {
-                    // Проверяем Input.json
+                    // Проверяем Input.json — если файл существует и сопряжение активно
                     if (hasInputFile() && currentStatus.pairing) {
+                        // Устанавливаем input=3 фактически, а не из файла статуса
+                        val updatedStatus = currentStatus.copy(input = 3)
+                        if (updatedStatus != currentStatus) {
+                            currentStatus = updatedStatus
+                            Log.d(TAG, "startPolling: input установлен в 3 (файл tsd_Input.json найден)")
+                        }
                         onInputFileReady?.invoke()
+                    } else if (!hasInputFile() && currentStatus.input == 3) {
+                        // Файл удалён — сбрасываем input на 0
+                        val updatedStatus = currentStatus.copy(input = 0)
+                        currentStatus = updatedStatus
+                        Log.d(TAG, "startPolling: input сброшен в 0 (файл tsd_Input.json удалён)")
                     }
                     // Проверяем Output.json
                     if (hasOutputFile()) {
@@ -440,7 +523,7 @@ class FileExchangeManager(
 
                     // Обновляем статус только если он изменился
                     readStatus()?.let { status ->
-                        val newStatus = status.copy(bd = calculatedBd)
+                        val newStatus = status.copy(bd = calculatedBd, input = currentStatus.input)
                         val statusStr = DeviceStatus.toSsv(newStatus)
                         if (statusStr != lastStatusString) {
                             lastStatusString = statusStr
@@ -448,7 +531,7 @@ class FileExchangeManager(
                             onStatusChanged?.invoke(newStatus)
                         }
                     }
-                    delay(5000)
+                    delay(2000) // 2 секунды
                 } catch (e: InterruptedException) {
                     Log.d(TAG, "Опрос прерван")
                     break

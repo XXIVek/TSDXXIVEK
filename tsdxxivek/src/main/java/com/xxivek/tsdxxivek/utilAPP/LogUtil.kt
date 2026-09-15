@@ -22,7 +22,7 @@ import java.util.*
         }
     }
     fun appendLog(tag: String?,msg: String?) {
-        val logFile = File("sdcard/Download/logTSD.dat")
+        val logFile = File("/storage/emulated/0/Download/logTSD.dat")
         val timeLog = SimpleDateFormat("dd.MM.yy hh:mm:ss").format(Date())
         if (LOGING) {
             if (!logFile.exists()) {

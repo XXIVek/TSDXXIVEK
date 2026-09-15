@@ -319,13 +319,25 @@ class ScanerFragment : Fragment() {
             binding.layoutScanResultRab.visibility = View.GONE
             binding.layoutScanResultTest.visibility = View.GONE
         } else if (isNotActivated()) {
-            binding.textBlank.text="Наведите камеру на штрихкод"
-            binding.bManualinputSh.visibility=View.VISIBLE
-            binding.layoytBlank.visibility=View.VISIBLE
-            binding.layoutActivation.visibility = View.GONE
-            binding.bActivate.visibility = View.GONE
-            binding.layoutScanResultRab.visibility=View.GONE
-            binding.layoutScanResultTest.visibility=View.GONE
+            // Если тестовый режим (appConnect1C == 0), оставляем кнопку "Сканировать" видимой
+            if (appLic.appConnect1C == 0) {
+                binding.textBlank.text="Наведите камеру на штрихкод"
+                binding.bManualinputSh.visibility=View.VISIBLE
+                binding.layoytBlank.visibility=View.VISIBLE
+                binding.layoutActivation.visibility = View.GONE
+                binding.bActivate.visibility = View.GONE
+                binding.layoutScanResultRab.visibility=View.GONE
+                binding.layoutScanResultTest.visibility=View.VISIBLE
+            } else {
+                // USB-режим (appConnect1C == 3) — показываем поле ввода
+                binding.textBlank.text="Наведите камеру на штрихкод"
+                binding.bManualinputSh.visibility=View.VISIBLE
+                binding.layoytBlank.visibility=View.VISIBLE
+                binding.layoutActivation.visibility = View.GONE
+                binding.bActivate.visibility = View.GONE
+                binding.layoutScanResultRab.visibility=View.GONE
+                binding.layoutScanResultTest.visibility=View.GONE
+            }
         }
     }
 
@@ -627,8 +639,18 @@ class ScanerFragment : Fragment() {
                                     binding.layoytBlank.visibility = View.GONE
                                 }
                             } else {
+                                // Тестовый режим (appConnect1C == 0) — просто показываем результат
                                 binding.tvScannedType.text = valueType.toString()
-                                binding.tvScannedData.text =rawValue
+                                binding.tvScannedData.text = rawValue
+                                // Сбрасываем redyScan для готовности к следующему сканированию
+                                redyScan = 1
+                                // Показываем результаты и кнопку "Сканировать" заново
+                                binding.layoytBlank.visibility = View.GONE
+                                binding.layoutScanResultRab.visibility = View.GONE
+                                binding.layoutScanErr.visibility = View.GONE
+                                binding.layoutCamera.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.app_fon))
+                                // Показываем результат сканирования и кнопку для следующего скана
+                                binding.layoutScanResultTest.visibility = View.VISIBLE
                             }
                         }else {
                             if (!manualInputSh) {

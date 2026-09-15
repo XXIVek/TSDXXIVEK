@@ -1,5 +1,44 @@
 # История изменений
 
+## 2026-09-15 — ИСПРАВЛЕНИЕ: Сохранение и отображение параметра oper (операция) во всех режимах
+
+### Проблема
+
+Параметр `oper` (выполняемая операция) **не отображался** на главном экране при загрузке данных с операцией=0 (Инвентаризация) или другими значениями.
+
+### Причины и решения
+
+**1. `FileExchangeManager.readInputAndImport()` не сохранял oper глобально**
+- Метод читал `oper` из JSON, но сохранял его только в поля менеджера (`appOper`, `appClient`)
+- **Решение:** Добавлен вызов `appLic.setAppOper(oper, context)` и `appLic.setAppClient(client, context)` внутри `readInputAndImport()` — теперь oper сохраняется в LicenseUtil + SharedPreferences для всех режимов (USB и WIFI)
+
+**2. `MenuFragment.onInput()` не обновлял UI операции после импорта**
+- После успешного импорта вызывались только `updateInputStatusUI(0)` и `appLic.conditionInfo()`, но **не** `updateOperInfo()`
+- **Решение:** Добавлен `updateOperInfo()` в USB-режим (успех/ошибка) и WIFI-режим (успех/ошибка)
+
+**3. `MenuFragment.onViewCreated()` не обновлял oper при загрузке экрана**
+- `appLic.conditionInfo()` обновляет LiveData асинхронно, но UI показывался до обновления
+- **Решение:** Добавлен синхронный вызов `updateOperInfo()` после `conditionInfo()` в `onViewCreated()`
+
+**4. `updateBDStatus()` не обновлял oper для bd=0 и bd=1**
+- Для пустой БД (bd=0) и ошибки БД (bd=1) показывалось "Операция не определена" вместо чтения из SharedPreferences
+- **Решение:** Заменён жёсткий текст на вызов `updateOperInfo()` — теперь oper отображается даже при пустой/ошибочной БД
+
+**5. `OperDialog.onCansel()` не сохранял oper в SharedPreferences**
+- Устанавливал `appLic.appOper` напрямую, но **не сохранял** в SharedPreferences
+- **Решение:** Добавлен вызов `appLic.setAppOper(oper.toString(), requireContext())`
+
+### Изменённые файлы
+
+| Файл | Изменение |
+|------|-----------|
+| `FileExchangeManager.kt` | Добавлено сохранение oper/client через LicenseUtil в `readInputAndImport()` |
+| `MenuFragment.kt` | Добавлен `updateOperInfo()` в `onViewCreated()`, `onInput()` (USB/WIFI), `updateBDStatus()` (bd=0,1) |
+| `OperDialog.kt` | Добавлено сохранение oper в SharedPreferences через `setAppOper()` |
+| `Docs/ARCH_API.md` | Добавлен раздел "Варианты работы ТСД" с описанием всех 4 операций |
+
+---
+
 ## 2026-09-14 — ФИНАЛЬНОЕ ИСПРАВЛЕНИЕ: Синхронное обновление статусов ТСД
 
 ### Проблема

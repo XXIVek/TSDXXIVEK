@@ -634,16 +634,15 @@ class ScanerFragment_d : Fragment() {
                                 //cameraProvider?.shutdown()
                                 navControler.navigate(R.id.action_scanerFragmentd_to_pairingFragment)
                             }else{
-                                // Тестовый режим (appConnect1C == 0) — просто показываем результат
+                                // Тестовый режим (appConnect1C == 0) — показываем результат, но НЕ сбрасываем redyScan
+                                // Сброс будет выполнен по нажатию кнопки "Сканировать" в onScan()
                                 binding.tvScannedType.text = valueType.toString()
                                 binding.tvScannedData.text = rawValue
-                                // Сбрасываем redyScan для готовности к следующему сканированию
-                                redyScan = 1
-                                // Показываем результат сканирования и кнопку для следующего скана
+                                // Показываем результат сканирования и кнопку для подтверждения
                                 binding.layoytBlank.visibility = View.GONE
                                 binding.layoutScanResultRab.visibility = View.GONE
                                 binding.layoutScanErr.visibility = View.GONE
-                                binding.layoutCamera.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.app_fon))
+                                binding.layoutCamera.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.ok))
                                 binding.layoutScanResultTest.visibility = View.VISIBLE
                             }
                         }else {

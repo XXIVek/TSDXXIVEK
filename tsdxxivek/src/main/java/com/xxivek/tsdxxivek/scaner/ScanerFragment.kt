@@ -321,12 +321,17 @@ class ScanerFragment : Fragment() {
         } else if (isNotActivated()) {
             // Если тестовый режим (appConnect1C == 0), оставляем кнопку "Сканировать" видимой
             if (appLic.appConnect1C == 0) {
+                // Сбрасываем результат сканирования для готовности к следующему
+                binding.tvScannedType.text = "0"
+                binding.tvScannedData.text = ""
+                // Показываем blank-экран с инструкцией и кнопку "Сканировать"
                 binding.textBlank.text="Наведите камеру на штрихкод"
                 binding.bManualinputSh.visibility=View.VISIBLE
                 binding.layoytBlank.visibility=View.VISIBLE
                 binding.layoutActivation.visibility = View.GONE
                 binding.bActivate.visibility = View.GONE
                 binding.layoutScanResultRab.visibility=View.GONE
+                binding.layoutCamera.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.app_fon))
                 binding.layoutScanResultTest.visibility=View.VISIBLE
             } else {
                 // USB-режим (appConnect1C == 3) — показываем поле ввода
@@ -639,16 +644,15 @@ class ScanerFragment : Fragment() {
                                     binding.layoytBlank.visibility = View.GONE
                                 }
                             } else {
-                                // Тестовый режим (appConnect1C == 0) — просто показываем результат
+                                // Тестовый режим (appConnect1C == 0) — показываем результат, но НЕ сбрасываем redyScan
+                                // Сброс будет выполнен по нажатию кнопки "Сканировать" в onScan()
                                 binding.tvScannedType.text = valueType.toString()
                                 binding.tvScannedData.text = rawValue
-                                // Сбрасываем redyScan для готовности к следующему сканированию
-                                redyScan = 1
-                                // Показываем результаты и кнопку "Сканировать" заново
+                                // Показываем результат сканирования и кнопку для подтверждения
                                 binding.layoytBlank.visibility = View.GONE
                                 binding.layoutScanResultRab.visibility = View.GONE
                                 binding.layoutScanErr.visibility = View.GONE
-                                binding.layoutCamera.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.app_fon))
+                                binding.layoutCamera.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.ok))
                                 // Показываем результат сканирования и кнопку для следующего скана
                                 binding.layoutScanResultTest.visibility = View.VISIBLE
                             }

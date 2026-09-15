@@ -89,8 +89,12 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
-        // Устанавливаем начальные значения в appLic
-        appLic= ViewModelProvider(this).get(LicenseUtil::class.java)
+        // Инициализируем appLic через TSDXXIVekApplication singleton
+        val application = application as TSDXXIVekApplication
+        if (!::appLic.isInitialized) {
+            appLic = ViewModelProvider(this).get(LicenseUtil::class.java)
+        }
+        application.appLic = appLic
 
         prefs = this.getSharedPreferences("settings", Context.MODE_PRIVATE)
         if(prefs.contains(APP_PREF_LIC)){

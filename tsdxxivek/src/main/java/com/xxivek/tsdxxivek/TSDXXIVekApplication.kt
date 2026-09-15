@@ -26,6 +26,9 @@ class TSDXXIVekApplication: Application() {
     // Singleton для глобального состояния приложения
     val appState = AppState()
     
+    // LicenseUtil (ViewModel) для управления лицензией и состояниями
+    lateinit var appLic: com.xxivek.tsdxxivek.utilAPP.LicenseUtil
+
     //Использование с помощью lazy, поэтому база данных и репозиторий создаются только тогда,
     // когда они необходимы, а не при запуске приложения
     val database: ItemRoomDatabase by lazy { ItemRoomDatabase.getDatabase(this) }
